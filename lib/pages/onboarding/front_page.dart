@@ -6,43 +6,44 @@ class FrontPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(image: AssetImage('assets/images/background.jpg'),
+        fit: BoxFit.cover,)
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        
+        body: 
       
-      body: Stack(
-
-        children: [
-
-          Positioned.fill(
-            child: Image.asset(
-              "assets/images/background.jpg", // Replace with your background image path
-              fit: BoxFit.cover,
+             Column(
+               mainAxisAlignment: MainAxisAlignment.center,
+               children: [
+                 Center(
+                  child: Text(
+                    "Welcome",
+                  style: TextStyle(
+                    fontSize: 50,
+                    fontWeight: FontWeight.bold,
+                    color: kWhite,
+                  ),),
+                           ),
+            const SizedBox(
+              height: 5,
             ),
-          ),
-
-           Column(
-             children: [
-               Center(
-                child: Text(
-                  "Welcome",
-                style: TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.bold,
-                  color: kWhite,
-                ),),
-                         ),
-                         const SizedBox(
-            height: 20,
-          ),
-      
-          Image.asset("assets/images/TeaLink_R.png",
-          height: 400,
-          width: 400,),
-             ],
-           ),
-      
-          
-          
-        ],
+        
+            Image.asset('assets/images/TeaLink_R.png',
+            height: 400,
+            width: 400,
+            ),
+            const SizedBox(
+              height: 40,
+            ),
+               ],
+             ),
+        
+            
+            
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:tealink/constants/colors.dart';
+import 'package:tealink/constants/constant.dart';
 
 class SharedOnboardingScreen extends StatelessWidget {
 
@@ -11,40 +12,64 @@ class SharedOnboardingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Image.asset(
-          imagepath,
-          width: 200,
-          fit: BoxFit.cover,
+    return Container(
+      decoration: BoxDecoration(
+        image: DecorationImage(image: AssetImage("assets/images/background.jpg"),
+        fit: BoxFit.cover,)
+      ),
 
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w500,
+      child: Scaffold(
+
+        backgroundColor: Colors.transparent,
+        
+        body: Padding(
+          padding: const EdgeInsets.all(kdefaultPadding),
+          child: Center(
+            child: Column(
+              
+              mainAxisAlignment: MainAxisAlignment.center,
+              
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(kdefaultBoarderRadius),
+                  child: Image.asset(
+                    imagepath,
+                    width: double.infinity,
+                    height: 300,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 36,
+                    color: kWhite,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  ),
+                  const SizedBox(
+                  height: 20,
+                ),
+                Text(
+                  description,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: kBlack,
+                    fontWeight: FontWeight.w700,
+                  ),),
+                  const SizedBox(
+                  height: 20,
+                ),
+              ],
+            ),
           ),
-          ),
-          const SizedBox(
-          height: 20,
         ),
-        Text(
-          description,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 16,
-            color: kGrey,
-            fontWeight: FontWeight.w500,
-          ),),
-          const SizedBox(
-          height: 20,
-        ),
-      ],
+      ),
     );
   }
 }

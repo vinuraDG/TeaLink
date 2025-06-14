@@ -46,7 +46,7 @@ class _onboardingScreenState extends State<onboardingScreen> {
                 ],
               ),
               Container(
-                alignment: Alignment(0, 0.65),
+                alignment: Alignment(0, 0.75),
                 child: SmoothPageIndicator(
                   controller: _controller,
                   count: 3,
@@ -59,7 +59,7 @@ class _onboardingScreenState extends State<onboardingScreen> {
                 ),
               ),
               Positioned(
-                bottom: 20,
+                bottom: 30,
                 left: 0,
                 right: 0,
                 child: Padding(
@@ -75,7 +75,8 @@ class _onboardingScreenState extends State<onboardingScreen> {
                           },
                           child: CustemButton(
                             buttonName: showDetailsPage ? "Get Started" : "Next",
-                            buttonColor: kMainColor,
+                            // ignore: deprecated_member_use
+                            buttonColor: kMainColor.withOpacity(0.9),
                           ),
                         )
                       : GestureDetector(
@@ -84,7 +85,7 @@ class _onboardingScreenState extends State<onboardingScreen> {
                         },
                         child: CustemButton(buttonName: showDetailsPage? "Get Started" : "Next",
                         // ignore: deprecated_member_use
-                        buttonColor: kbuttonColor.withOpacity(0.7),),
+                        buttonColor: kMainColor.withOpacity(0.9),),
                       ),
                 ),
               ),
