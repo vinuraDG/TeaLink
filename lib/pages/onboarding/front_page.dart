@@ -8,8 +8,7 @@ class FrontPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        image: DecorationImage(image: AssetImage('assets/images/background.jpg'),
-        fit: BoxFit.cover,)
+        color: kWhite,
       ),
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -25,14 +24,14 @@ class FrontPage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 50,
                     fontWeight: FontWeight.bold,
-                    color: kWhite,
+                    color: kMainColor,
                   ),),
                            ),
             const SizedBox(
               height: 5,
             ),
         
-            Image.asset('assets/images/TeaLink_R.png',
+            Image.asset('assets/images/TeaLink.png',
             height: 400,
             width: 400,
             ),

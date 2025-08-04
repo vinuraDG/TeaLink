@@ -81,7 +81,7 @@ class _onboardingScreenState extends State<onboardingScreen> {
                         )
                       : GestureDetector(
                         onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const UserRegistrationScreen()));
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => UserRegistrationScreen()));
                         },
                         child: CustemButton(buttonName: showDetailsPage? "Get Started" : "Next",
                         // ignore: deprecated_member_use

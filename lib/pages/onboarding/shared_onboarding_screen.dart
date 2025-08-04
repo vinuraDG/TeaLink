@@ -14,21 +14,15 @@ class SharedOnboardingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        image: DecorationImage(image: AssetImage("assets/images/background.jpg"),
-        fit: BoxFit.cover,)
+        color: kWhite,
       ),
-
       child: Scaffold(
-
         backgroundColor: Colors.transparent,
-        
         body: Padding(
           padding: const EdgeInsets.all(kdefaultPadding),
           child: Center(
             child: Column(
-              
               mainAxisAlignment: MainAxisAlignment.center,
-              
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(kdefaultBoarderRadius),
@@ -47,22 +41,24 @@ class SharedOnboardingScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 36,
-                    color: kWhite,
+                    color: kBlack,
                     fontWeight: FontWeight.w800,
                   ),
-                  ),
-                  const SizedBox(
+                ),
+                const SizedBox(
                   height: 20,
                 ),
                 Text(
                   description,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
-                    color: kBlack,
+                    // ignore: deprecated_member_use
+                    color: kBlack.withOpacity(0.7),
                     fontWeight: FontWeight.w700,
-                  ),),
-                  const SizedBox(
+                  ),
+                ),
+                const SizedBox(
                   height: 20,
                 ),
               ],

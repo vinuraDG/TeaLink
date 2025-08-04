@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "561383374890",
+    "project_id": "tealink-aad76",
+    "storage_bucket": "tealink-aad76.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:561383374890:android:8aa8ab069ae5a14ade4353",
+        "android_client_info": {
+          "package_name": "com.example.tealink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1QVZ_INO9Dz48-uGG_MDE40yTQ5vl_1A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
