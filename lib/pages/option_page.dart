@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tealink/constants/colors.dart';
 import 'package:tealink/pages/login_page.dart';
+import 'package:tealink/pages/users/admin_dashboard.dart';
+import 'package:tealink/pages/users/collector_dashboard.dart';
 import 'package:tealink/pages/users/customer_dashboard.dart';
 import 'package:tealink/widgets/session_manager.dart'; // ✅ Import your login page
 
@@ -90,6 +92,18 @@ class RoleSelectionPage extends StatelessWidget {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => CustomerDashboard()),
+    );
+  }
+  if (role.toLowerCase() == 'admin') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AdminDashboard()),
+    );
+  }
+  if (role.toLowerCase() == 'collector') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => CollectorDashboard()),
     );
   }
 }

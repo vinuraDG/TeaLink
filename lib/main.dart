@@ -5,6 +5,8 @@ import 'package:tealink/pages/login_page.dart';
 import 'package:tealink/pages/option_page.dart';
 import 'package:tealink/pages/onboarding_screen.dart';
 import 'package:tealink/pages/user_registration_screen.dart';
+import 'package:tealink/pages/users/admin_dashboard.dart';
+import 'package:tealink/pages/users/collector_dashboard.dart';
 import 'package:tealink/pages/users/customer_dashboard.dart';
 import 'package:tealink/widgets/session_manager.dart';
 
@@ -46,6 +48,10 @@ class MyApp extends StatelessWidget {
         '/signin': (context) => LoginPage(),
         '/option': (context) => RoleSelectionPage(),
         '/customerDashboard': (context) => CustomerDashboard(),
+        '/collector': (context) => CollectorDashboard(),
+        
+
+
       },
     );
   }

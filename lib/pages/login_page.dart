@@ -5,6 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tealink/constants/colors.dart';
 import 'package:tealink/pages/option_page.dart';
 import 'package:tealink/pages/user_registration_screen.dart';
+import 'package:tealink/pages/users/admin_dashboard.dart';
+import 'package:tealink/pages/users/collector_dashboard.dart';
 import 'package:tealink/pages/users/customer_dashboard.dart';
 import 'package:tealink/widgets/session_manager.dart';
 
@@ -131,12 +133,25 @@ class _LoginPageState extends State<LoginPage> {
         context,
         MaterialPageRoute(builder: (context) => CustomerDashboard()),
       );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => RoleSelectionPage()),
-      );
-    }
+    } 
+   else if (role.toLowerCase() == 'admin') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => AdminDashboard()),
+    );
+  } 
+  
+  else if (role.toLowerCase() == 'collector') {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => CollectorDashboard()),
+    );
+  } else {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => RoleSelectionPage()),
+    );
+  }
   }
 
 

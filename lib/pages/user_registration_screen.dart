@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tealink/constants/colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tealink/pages/login_page.dart';
+import 'package:tealink/pages/onboarding_screen.dart';
 import 'package:tealink/pages/option_page.dart';
 
 class UserRegistrationScreen extends StatefulWidget {
@@ -127,15 +128,25 @@ Future<void> _signInWithGoogle() async {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: kWhite),
-        backgroundColor: kMainColor,
-        title: Row(
-          children: [
-            SizedBox(width: 85),
-            Text("SIGN UP", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhite)),
-          ],
-        ),
-      ),
+  iconTheme: IconThemeData(color: kWhite),
+  backgroundColor: kMainColor,
+  leading: IconButton(
+    icon: Icon(Icons.arrow_back, color: kWhite),
+    onPressed: () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => onboardingScreen()),
+      );
+    },
+  ),
+  title: Row(
+    children: [
+      SizedBox(width: 85),
+      Text("SIGN UP", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhite)),
+    ],
+  ),
+),
+
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.all(20),

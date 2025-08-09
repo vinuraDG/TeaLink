@@ -15,6 +15,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   final User? user = FirebaseAuth.instance.currentUser;
   String? displayName;
   String currentDate = '';
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -38,6 +39,12 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         displayName = doc.data()?['name'] ?? 'User';
       });
     }
+  }
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
 
   String getGreeting() {
@@ -122,7 +129,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                               icon: Icons.scale,
                               label: "50kg",
                             ),
-                            const SizedBox(width: 30),
+                            const SizedBox(width: 20),
                             _dashboardCard(
                               title: "Harvest Trends",
                               icon: Icons.insights,
@@ -140,7 +147,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                               icon: Icons.payment,
                               onTap: () => Navigator.pushNamed(context, '/payments'),
                             ),
-                            const SizedBox(width: 30),
+                            const SizedBox(width: 20),
                             _dashboardCard(
                               title: "Collector Info",
                               icon: Icons.person,
@@ -166,15 +173,37 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           ),
         ),
         bottomNavigationBar: BottomNavigationBar(
-          selectedItemColor: Colors.green,
-          unselectedItemColor: Colors.grey,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-            BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Trends"),
-            BottomNavigationBarItem(icon: Icon(Icons.payment), label: "Payments"),
-            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-          ],
-        ),
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: Colors.green[800],
+        unselectedItemColor: Colors.black,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        
+        
+        elevation: 0,
+        
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            
+            icon: Icon(Icons.home_outlined),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            label: 'Trends',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_outlined),
+            label: 'Payments',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            label: 'Profile',
+          ),
+        ],
+      ),
       ),
     );
   }
@@ -198,7 +227,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     VoidCallback? onTap,
   }) {
     final card = Container(
-      width: isWide ? double.infinity : 150,
+      width: isWide ? double.infinity : 160,
       height: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
