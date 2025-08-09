@@ -1,10 +1,44 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:tealink/pages/login_page.dart';
 
-class CustomerDashboard extends StatelessWidget {
+class CustomerDashboard extends StatefulWidget {
+  const CustomerDashboard({super.key});
+
+  @override
+  State<CustomerDashboard> createState() => _CustomerDashboardState();
+}
+
+class _CustomerDashboardState extends State<CustomerDashboard> {
   final User? user = FirebaseAuth.instance.currentUser;
+  String? displayName;
+  String currentDate = '';
 
-   CustomerDashboard({super.key});
+  @override
+  void initState() {
+    super.initState();
+    fetchUserName();
+    formatDate();
+  }
+
+  void formatDate() {
+    final now = DateTime.now();
+    final formattedDate = DateFormat('yyyy/MM/dd\nEEEE').format(now);
+    setState(() {
+      currentDate = formattedDate;
+    });
+  }
+
+  Future<void> fetchUserName() async {
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+      setState(() {
+        displayName = doc.data()?['name'] ?? 'User';
+      });
+    }
+  }
 
   String getGreeting() {
     final hour = DateTime.now().hour;
@@ -15,109 +49,142 @@ class CustomerDashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.green[700],
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Greeting Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(Icons.arrow_back, color: Colors.white),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("CUSTOMER", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 10),
-                        Text("Hello, ${user?.displayName ?? 'Vinura'}", style: const TextStyle(color: Colors.white, fontSize: 22)),
-                        Text(getGreeting(), style: const TextStyle(color: Colors.white70)),
-                      ],
-                    ),
-                  ),
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundImage: AssetImage('assets/images/user_avatar.png'), // Replace with your asset
-                  ),
-                ],
-              ),
+    return WillPopScope(
+      onWillPop: () async {
+        await _logout(context);
+        return false;
+      },
+      child: Scaffold(
+        backgroundColor: Colors.green[700],
+        appBar: AppBar(
+          backgroundColor: Colors.green[700],
+          title: const Text(
+            "CUSTOMER",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          elevation: 0,
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white),
+              onPressed: () async => await _logout(context),
             ),
-
-            // White Container
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                ),
-                child: Column(
+          ],
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Top Grid
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _dashboardCard(
-                          title: "Weekly Harvest",
-                          subtitle: "2025/05/26\nMonday",
-                          icon: Icons.scale,
-                          label: "50kg",
-                        ),
-                        _dashboardCard(
-                          title: "Harvest Trends",
-                          icon: Icons.insights,
-                          onTap: () => Navigator.pushNamed(context, '/trends'),
-                        ),
-                      ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Hello, ${displayName ?? '...'}",
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                          Text(getGreeting(),
+                              style: const TextStyle(
+                                  color: Colors.white70, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 20),
-                    // Bottom Grid
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _dashboardCard(
-                          title: "Payment",
-                          icon: Icons.payment,
-                          onTap: () => Navigator.pushNamed(context, '/payments'),
-                        ),
-                        _dashboardCard(
-                          title: "Collector Info",
-                          icon: Icons.person,
-                          onTap: () => Navigator.pushNamed(context, '/collector'),
-                          disabled: true,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    // Profile Section
-                    _dashboardCard(
-                      title: "Customer Profile",
-                      icon: Icons.settings,
-                      onTap: () => Navigator.pushNamed(context, '/profile'),
-                      isWide: true,
+                    const CircleAvatar(
+                      radius: 40,
+                      backgroundImage: AssetImage('assets/images/avatar.jpg'),
                     ),
                   ],
                 ),
               ),
-            ),
+
+              // White Container
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Top Grid
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _dashboardCard(
+                              title: "Weekly Harvest",
+                              subtitle: currentDate,
+                              icon: Icons.scale,
+                              label: "50kg",
+                            ),
+                            const SizedBox(width: 30),
+                            _dashboardCard(
+                              title: "Harvest Trends",
+                              icon: Icons.insights,
+                              onTap: () => Navigator.pushNamed(context, '/trends'),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Bottom Grid
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _dashboardCard(
+                              title: "Payment",
+                              icon: Icons.payment,
+                              onTap: () => Navigator.pushNamed(context, '/payments'),
+                            ),
+                            const SizedBox(width: 30),
+                            _dashboardCard(
+                              title: "Collector Info",
+                              icon: Icons.person,
+                              onTap: () => Navigator.pushNamed(context, '/collector'),
+                              disabled: true,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        // Profile Section
+                        _dashboardCard(
+                          title: "Customer Profile",
+                          icon: Icons.settings,
+                          onTap: () => Navigator.pushNamed(context, '/profile'),
+                          isWide: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          selectedItemColor: Colors.green,
+          unselectedItemColor: Colors.grey,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Trends"),
+            BottomNavigationBarItem(icon: Icon(Icons.payment), label: "Payments"),
+            BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: "Trends"),
-          BottomNavigationBarItem(icon: Icon(Icons.payment), label: "Payments"),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-      ),
+    );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
     );
   }
 
@@ -132,7 +199,7 @@ class CustomerDashboard extends StatelessWidget {
   }) {
     final card = Container(
       width: isWide ? double.infinity : 150,
-      height: 120,
+      height: 150,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: disabled ? Colors.grey[200] : Colors.grey[100],
@@ -147,7 +214,8 @@ class CustomerDashboard extends StatelessWidget {
           if (icon != null) Icon(icon, color: Colors.green, size: 28),
           const SizedBox(height: 5),
           Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600)),
-          if (subtitle != null) Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          if (subtitle != null)
+            Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Colors.grey)),
         ],
       ),
     );

@@ -5,7 +5,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tealink/constants/colors.dart';
 import 'package:tealink/pages/option_page.dart';
 import 'package:tealink/pages/user_registration_screen.dart';
- // Make sure this file exists with SignUpPage implemented
+import 'package:tealink/pages/users/customer_dashboard.dart';
+import 'package:tealink/widgets/session_manager.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,58 +19,9 @@ class _LoginPageState extends State<LoginPage> {
   final _auth = FirebaseAuth.instance;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
-
-Future<void> _signInWithEmail() async {
-  try {
-    UserCredential userCredential = await _auth.signInWithEmailAndPassword(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-    );
-
-    // Fetch user data from Firestore
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userCredential.user!.uid)
-        .get();
-
-    if (userDoc.exists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login successful")),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => RoleSelectionPage()), // or OptionPage
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("No user data found in Firestore")),
-      );
-    }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(e.toString())),
-    );
-  }
-}
-
-
-  Future<void> _signInWithGoogle() async {
-    final GoogleSignIn googleSignIn = GoogleSignIn();
-    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-    if (googleUser == null) return;
-
-    final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-    await _auth.signInWithCredential(credential);
-  }
 
   Future<void> _resetPassword() async {
-    if (_emailController.text.isEmpty) {
+    if (_emailController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Please enter your email to reset password")),
       );
@@ -82,26 +34,130 @@ Future<void> _signInWithEmail() async {
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text("Failed to send reset email: $e")),
       );
     }
   }
+
+  Future<void> _signInWithEmail() async {
+    try {
+      UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("No user data found in Firestore")),
+        );
+        return;
+      }
+
+      final role = userDoc['role'] as String?;
+      if (role != null && role.isNotEmpty) {
+        await SessionManager.saveUserRole(role);
+        _navigateBasedOnRole(role);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => RoleSelectionPage()),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login failed: $e")),
+      );
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) return;
+
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+
+      final docRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid);
+
+      final doc = await docRef.get();
+
+      if (!doc.exists) {
+        await docRef.set({
+          'name': userCredential.user!.displayName ?? '',
+          'email': userCredential.user!.email ?? '',
+          'phone': userCredential.user!.phoneNumber ?? '',
+          'role': '',
+        });
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => RoleSelectionPage()),
+        );
+      } else {
+        final role = doc['role'] as String?;
+        if (role != null && role.isNotEmpty) {
+          await SessionManager.saveUserRole(role);
+          _navigateBasedOnRole(role);
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => RoleSelectionPage()),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Google sign-in failed: $e")),
+      );
+    }
+  }
+
+  void _navigateBasedOnRole(String role) {
+    if (role.toLowerCase() == 'customer') {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CustomerDashboard()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => RoleSelectionPage()),
+      );
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        iconTheme: IconThemeData(color: kWhite),
-        backgroundColor: kMainColor,
-        title: Row(
-          children: [
-            SizedBox(width: 85),
-            Text(
-              "LOG IN",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
-          ],
-        ),
+       iconTheme: IconThemeData(color: kWhite),
+       backgroundColor: kMainColor,
+       title: Row(
+         children: [
+          SizedBox(width: 85,),
+           Text(
+             "LOG IN",
+           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+             ),
+         ],
+       ),
+          
+        
       ),
       body: SafeArea(
         child: SingleChildScrollView(
