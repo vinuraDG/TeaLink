@@ -1,4 +1,4 @@
-import 'package:tealink/models/onboarding_model.dart';
+import 'package:TeaLink/models/onboarding_model.dart';
 
 class OnboardingData {
 

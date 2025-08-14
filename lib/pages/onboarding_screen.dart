@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
-import 'package:tealink/constants/colors.dart';
-import 'package:tealink/data/onboarding_data.dart';
-import 'package:tealink/pages/onboarding/front_page.dart';
-import 'package:tealink/pages/onboarding/shared_onboarding_screen.dart';
-import 'package:tealink/pages/user_registration_screen.dart';
-import 'package:tealink/widgets/custom_button.dart';
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/data/onboarding_data.dart';
+import 'package:TeaLink/pages/onboarding/front_page.dart';
+import 'package:TeaLink/pages/onboarding/shared_onboarding_screen.dart';
+import 'package:TeaLink/pages/user_registration_screen.dart';
+import 'package:TeaLink/widgets/custom_button.dart';
 
 // ignore: camel_case_types
 class onboardingScreen extends StatefulWidget {

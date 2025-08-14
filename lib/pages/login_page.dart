@@ -2,13 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:tealink/constants/colors.dart';
-import 'package:tealink/pages/option_page.dart';
-import 'package:tealink/pages/user_registration_screen.dart';
-import 'package:tealink/pages/users/admin_dashboard.dart';
-import 'package:tealink/pages/users/collector_dashboard.dart';
-import 'package:tealink/pages/users/customer_dashboard.dart';
-import 'package:tealink/widgets/session_manager.dart';
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/pages/option_page.dart';
+import 'package:TeaLink/pages/user_registration_screen.dart';
+import 'package:TeaLink/pages/users/admin_dashboard.dart';
+import 'package:TeaLink/pages/users/collector_dashboard.dart';
+import 'package:TeaLink/pages/users/customer_dashboard.dart';
+import 'package:TeaLink/widgets/session_manager.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});

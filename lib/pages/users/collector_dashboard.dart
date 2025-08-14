@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:tealink/constants/colors.dart';
-import 'package:tealink/pages/login_page.dart';
+import 'package:TeaLink/pages/login_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -114,14 +113,14 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
         backgroundColor: greenColor,
         elevation: 0,
         centerTitle: true,
-        leading: const BackButton(color: Colors.white),
+        leading: const BackButton(color: Colors.white,),
         title: const Text(
           'COLLECTOR',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
+            icon: const Icon(Icons.logout, color: Colors.white,size: 28,),
             onPressed: () async => await _logout(context),
           ),]
       ),
@@ -141,7 +140,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                         Text(
                           'Hello, $userName',
                           style: const TextStyle(
-                              fontSize: 22,
+                              fontSize: 25,
                               fontWeight: FontWeight.bold,
                               color: Colors.white),
                         ),
@@ -198,7 +197,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: const [
-                                Icon(Icons.group, color: greenColor, size: 40),
+                                Icon(Icons.group, color: greenColor, size: 60),
                                 SizedBox(height: 10),
                                 Text(
                                   'Customers List',
@@ -216,7 +215,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
                             Icon(Icons.add_box_outlined,
-                                color: greenColor, size: 40),
+                                color: greenColor, size: 60),
                             SizedBox(height: 10),
                             Text(
                               'Add Weight',
@@ -240,7 +239,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: const [
                                 Icon(Icons.map_outlined,
-                                    color: greenColor, size: 40),
+                                    color: greenColor, size: 60),
                                 SizedBox(height: 10),
                                 Text(
                                   'Map',
@@ -259,7 +258,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: const [
                             Icon(Icons.checklist_rounded,
-                                color: greenColor, size: 40),
+                                color: greenColor, size: 60),
                             SizedBox(height: 10),
                             Text(
                               'Collection History',
@@ -298,7 +297,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: const [
                               Icon(Icons.settings_outlined,
-                                  color: greenColor, size: 40),
+                                  color: greenColor, size: 60),
                               SizedBox(height: 10),
                               Text(
                                 'Collector Profile',
@@ -330,23 +329,24 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
 
         
         elevation: 0,
-        
+        backgroundColor: Colors.grey[200],
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
+            
+            icon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
+            icon: Icon(Icons.map_sharp),
             label: 'Map',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.history_outlined),
+            icon: Icon(Icons.history),
             label: 'History',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
+            icon: Icon(Icons.person),
             label: 'Profile',
           ),
         ],

@@ -1,14 +1,16 @@
+import 'package:TeaLink/pages/users/customer_cards/customer_profile.dart';
+import 'package:TeaLink/pages/users/customer_cards/payment.dart';
+import 'package:TeaLink/pages/users/customer_cards/trend.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:tealink/pages/login_page.dart';
-import 'package:tealink/pages/option_page.dart';
-import 'package:tealink/pages/onboarding_screen.dart';
-import 'package:tealink/pages/user_registration_screen.dart';
-import 'package:tealink/pages/users/admin_dashboard.dart';
-import 'package:tealink/pages/users/collector_dashboard.dart';
-import 'package:tealink/pages/users/customer_dashboard.dart';
-import 'package:tealink/widgets/session_manager.dart';
+import 'package:TeaLink/pages/login_page.dart';
+import 'package:TeaLink/pages/option_page.dart';
+import 'package:TeaLink/pages/onboarding_screen.dart';
+import 'package:TeaLink/pages/user_registration_screen.dart';
+import 'package:TeaLink/pages/users/collector_dashboard.dart';
+import 'package:TeaLink/pages/users/customer_dashboard.dart';
+import 'package:TeaLink/widgets/session_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,8 +51,10 @@ class MyApp extends StatelessWidget {
         '/option': (context) => RoleSelectionPage(),
         '/customerDashboard': (context) => CustomerDashboard(),
         '/collector': (context) => CollectorDashboard(),
-        
-
+        '/profile': (context) =>  ProfilePage(),
+        '/trends': (context) => TrendsPage(),
+        '/payments': (context) => PaymentsPage(),
+        '/Home': (context) => CustomerDashboard(),
 
       },
     );

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tealink/constants/colors.dart';
-import 'package:tealink/constants/constant.dart';
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/constants/constant.dart';
 
 class SharedOnboardingScreen extends StatelessWidget {
 

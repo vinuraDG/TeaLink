@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:tealink/constants/colors.dart';
+import 'package:TeaLink/constants/colors.dart';
 
 class CustemButton extends StatelessWidget {
 

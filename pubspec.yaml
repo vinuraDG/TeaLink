@@ -1,4 +1,4 @@
-name: tealink
+name: TeaLink
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -28,6 +28,18 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+
+  google_maps_flutter: ^2.5.0
+  geocoding: ^2.1.0
+
+  firebase_storage: 13.0.0
+  image_picker: ^1.0.7
+  path_provider: ^2.1.1
+  permission_handler: ^11.3.1
+  qr_flutter: ^4.1.0
+
+
+
   flutter:
     sdk: flutter
 
@@ -45,11 +57,20 @@ dependencies:
   firebase_core: ^4.0.0
   cloud_firestore: ^6.0.0
   intl: ^0.20.2
+  uuid: ^4.5.1
 
 dev_dependencies:
+  flutter_launcher_icons: "^0.14.4"
   flutter_test:
     sdk: flutter
 
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/Logo.png"
+  adaptive_icon_foreground: "assets/images/Logo.png" 
+  adaptive_icon_background: "#ffffff"
+  
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your
@@ -72,12 +93,12 @@ flutter:
   assets:
     - assets/images/background.jpg
     - assets/images/collector-R.png
-    - assets/images/TeaLink_R.png
     - assets/images/TeaLink.png
     - assets/images/Tea.jpg
     - assets/images/collector.jpg
     - assets/images/Google_Logo.jpg
     - assets/images/avatar.jpg
+    - assets/images/Logo.png
     
     # - assets/images/Drinking_Green_Tea_1.jpg  # Removed or commented out because the file does not exist
 

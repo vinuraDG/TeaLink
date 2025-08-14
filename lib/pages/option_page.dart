@@ -2,12 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:tealink/constants/colors.dart';
-import 'package:tealink/pages/login_page.dart';
-import 'package:tealink/pages/users/admin_dashboard.dart';
-import 'package:tealink/pages/users/collector_dashboard.dart';
-import 'package:tealink/pages/users/customer_dashboard.dart';
-import 'package:tealink/widgets/session_manager.dart'; // ✅ Import your login page
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/pages/login_page.dart';
+import 'package:TeaLink/pages/users/admin_dashboard.dart';
+import 'package:TeaLink/pages/users/collector_dashboard.dart';
+import 'package:TeaLink/pages/users/customer_dashboard.dart';
+import 'package:TeaLink/widgets/session_manager.dart'; // ✅ Import your login page
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
