@@ -1,3 +1,4 @@
+import 'package:TeaLink/pages/users/collector_card/collector_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/customer_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/payment.dart';
 import 'package:TeaLink/pages/users/customer_cards/trend.dart';
@@ -49,12 +50,21 @@ class MyApp extends StatelessWidget {
         '/register': (context) => UserRegistrationScreen(),
         '/signin': (context) => LoginPage(),
         '/option': (context) => RoleSelectionPage(),
+
         '/customerDashboard': (context) => CustomerDashboard(),
-        '/collector': (context) => CollectorDashboard(),
-        '/profile': (context) =>  ProfilePage(),
-        '/trends': (context) => TrendsPage(),
-        '/payments': (context) => PaymentsPage(),
-        '/Home': (context) => CustomerDashboard(),
+        '/customer_profile': (context) =>  ProfilePage(),
+        '/customer_trends': (context) => TrendsPage(),
+        '/customer_payments': (context) => PaymentsPage(),
+        '/customer_Home': (context) => CustomerDashboard(),
+
+        '/collectorDashboard': (context) => CollectorDashboard(),
+        '/collector_customer_list': (context) =>  ProfilePage(),
+        '/collector_add_weight': (context) => TrendsPage(),
+        '/collector_map': (context) => PaymentsPage(),
+        '/collector_history': (context) => CustomerDashboard(),
+         '/collector_profile': (context) =>  CollectorProfile(),
+         '/collector_home': (context) => CollectorDashboard(),
+        
 
       },
     );

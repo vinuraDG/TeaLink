@@ -5,77 +5,53 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uuid/uuid.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:geocoding/geocoding.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+class CollectorProfile extends StatefulWidget {
+  const CollectorProfile({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<CollectorProfile> createState() => _CollectorProfileState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _CollectorProfileState extends State<CollectorProfile> {
   final user = FirebaseAuth.instance.currentUser!;
   final _firestore = FirebaseFirestore.instance;
 
   String? profileImageUrl;
   String? registrationNumber;
-  String? address;
-  double? latitude;
-  double? longitude;
   int _selectedIndex = 3;
 
-  void _onTabSelected(int index) {
-    if (_selectedIndex == index) return; // already on selected page
-    setState(() => _selectedIndex = index);
-
-    switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/Home');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/Trends');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/Payments');
-        break;
-      case 3:
-        break;
-    }
-  }
+  
 
   late TextEditingController nameController;
   late TextEditingController phoneController;
   bool isLoading = true;
   
   void _editName() {
-  showDialog(
-    context: context,
-    builder: (ctx) {
-      return AlertDialog(
-        title: const Text("Edit Name"),
-        content: TextField(
-          controller: nameController,
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Cancel")),
-          TextButton(
-              onPressed: () {
-                setState(() {}); // Refresh UI
-                Navigator.pop(ctx);
-              },
-              child: const Text("Save")),
-        ],
-      );
-    },
-  );
-}
-
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text("Edit Name"),
+          content: TextField(
+            controller: nameController,
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Cancel")),
+            TextButton(
+                onPressed: () {
+                  setState(() {}); // Refresh UI
+                  Navigator.pop(ctx);
+                },
+                child: const Text("Save")),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -85,52 +61,44 @@ class _ProfilePageState extends State<ProfilePage> {
     _loadProfile();
   }
 
-Future<void> _loadProfile() async {
-  try {
-    DocumentSnapshot doc =
-        await _firestore.collection('users').doc(user.uid).get();
+  Future<void> _loadProfile() async {
+    try {
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(user.uid).get();
 
-    if (!doc.exists) {
-      String regNum = const Uuid().v4();
-      await _firestore.collection('users').doc(user.uid).set({
-        'name': user.displayName ?? '',
-        'email': user.email ?? '',
-        'phone': '',
-        'location': '',
-        'latitude': null,
-        'longitude': null,
-        'profileImage': '',
-        'registrationNumber': regNum,
-      });
+      if (!doc.exists) {
+        String regNum = const Uuid().v4();
+        await _firestore.collection('users').doc(user.uid).set({
+          'name': user.displayName ?? '',
+          'email': user.email ?? '',
+          'phone': '',
+          'profileImage': '',
+          'registrationNumber': regNum,
+        });
 
+        setState(() {
+          registrationNumber = regNum;
+          nameController.text = user.displayName ?? '';
+          phoneController.text = '';
+          profileImageUrl = '';
+        });
+      } else {
+        setState(() {
+          nameController.text = doc['name'] ?? '';
+          phoneController.text = doc['phone'] ?? '';
+          registrationNumber = doc['registrationNumber'] ?? '';
+          profileImageUrl = doc['profileImage'] ?? '';
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading profile: $e");
       setState(() {
-        registrationNumber = regNum;
-        nameController.text = user.displayName ?? '';
-        phoneController.text = '';
-        profileImageUrl = '';
-        address = '';
+        registrationNumber = '';
       });
-    } else {
-      setState(() {
-        nameController.text = doc['name'] ?? '';
-        phoneController.text = doc['phone'] ?? '';
-        registrationNumber = doc['registrationNumber'] ?? '';
-        profileImageUrl = doc['profileImage'] ?? '';
-        address = doc['location'] ?? '';
-        latitude = doc['latitude'];
-        longitude = doc['longitude'];
-      });
+    } finally {
+      setState(() => isLoading = false);
     }
-  } catch (e) {
-    debugPrint("Error loading profile: $e");
-    setState(() {
-      registrationNumber = '';
-    });
-  } finally {
-    setState(() => isLoading = false);
   }
-}
-
 
   Future<void> _pickImage() async {
     final pickedFile =
@@ -146,37 +114,12 @@ Future<void> _loadProfile() async {
     setState(() => profileImageUrl = downloadUrl);
   }
 
-  Future<void> _pickLocation() async {
-    LatLng? picked = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const LocationPickerPage(),
-      ),
-    );
-
-    if (picked != null) {
-      List<Placemark> placemarks =
-          await placemarkFromCoordinates(picked.latitude, picked.longitude);
-      String fullAddress =
-          "${placemarks.first.street}, ${placemarks.first.locality}, ${placemarks.first.country}";
-
-      setState(() {
-        address = fullAddress;
-        latitude = picked.latitude;
-        longitude = picked.longitude;
-      });
-    }
-  }
-
   Future<void> _saveProfile() async {
     try {
       await _firestore.collection('users').doc(user.uid).update({
         'name': nameController.text,
         'phone': phoneController.text,
         'profileImage': profileImageUrl ?? '',
-        'location': address ?? '',
-        'latitude': latitude,
-        'longitude': longitude,
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -190,7 +133,6 @@ Future<void> _loadProfile() async {
   }
 
   Future<void> _deleteAccount() async {
-    // Re-authentication
     final passwordController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
@@ -222,15 +164,11 @@ Future<void> _loadProfile() async {
     if (confirmed != true) return;
 
     try {
-      // Re-authenticate
       final cred = EmailAuthProvider.credential(
           email: user.email!, password: passwordController.text);
       await user.reauthenticateWithCredential(cred);
 
-      // Delete Firestore data
       await _firestore.collection('users').doc(user.uid).delete();
-
-      // Delete Firebase user
       await user.delete();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -275,30 +213,14 @@ Future<void> _loadProfile() async {
               ),
             ),
             const SizedBox(height: 8),
-            // In the build method
             _editableTile("Name", nameController, _editName),
             const SizedBox(height: 8),
             _detailTile("Email", user.email ?? '', null, readOnly: true),
             const SizedBox(height: 8),
             _editableTile("Phone Number", phoneController, _editPhone),
-            _detailTile(
-                "Unique Registration Number", registrationNumber ?? '', null,
-                readOnly: true),
-            _detailTile("Location", address ?? 'Tap to pick location',
-                _pickLocation),
+            _detailTile("Unique Registration Number", registrationNumber ?? '',
+                null, readOnly: true),
             const SizedBox(height: 20),
-            Card(
-              margin: const EdgeInsets.all(16),
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: QrImageView(
-                  data: registrationNumber ?? '',
-                  version: QrVersions.auto,
-                  size: 200.0,
-                ),
-              ),
-            ),
             ElevatedButton(
               onPressed: _saveProfile,
               style: ElevatedButton.styleFrom(
@@ -323,20 +245,36 @@ Future<void> _loadProfile() async {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
+       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onTabSelected,
-        backgroundColor: Colors.grey[200],
-        selectedItemColor: Colors.green[800],
+        onTap: _onItemTapped,
+        selectedItemColor: kMainColor,
         unselectedItemColor: Colors.black,
         showSelectedLabels: true,
         showUnselectedLabels: true,
+
+        
+        elevation: 0,
+        backgroundColor: Colors.grey[200],
         type: BottomNavigationBarType.fixed,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_sharp), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.map_sharp), label: 'Trends'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Payments'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+            
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_sharp),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
         ],
       ),
     );
@@ -390,57 +328,23 @@ Future<void> _loadProfile() async {
       },
     );
   }
-}
 
+  void _onItemTapped(int index) {
+  setState(() => _selectedIndex = index);
 
-
-class LocationPickerPage extends StatefulWidget {
-  const LocationPickerPage({super.key});
-
-  @override
-  State<LocationPickerPage> createState() => _LocationPickerPageState();
-}
-
-class _LocationPickerPageState extends State<LocationPickerPage> {
-  LatLng? selectedPosition;
-  GoogleMapController? _controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Pick Location"),
-        backgroundColor: kMainColor,
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context, selectedPosition);
-            },
-            child: const Text("Save", style: TextStyle(color: kWhite)),
-          )
-        ],
-      ),
-      body: GoogleMap(
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(40.7128, -74.0060), // Default NYC
-          zoom: 14,
-        ),
-        onMapCreated: (controller) {
-          _controller = controller;
-        },
-        onTap: (pos) {
-          setState(() {
-            selectedPosition = pos;
-          });
-        },
-        markers: selectedPosition != null
-            ? {
-                Marker(
-                    markerId: const MarkerId("selected"),
-                    position: selectedPosition!)
-              }
-            : {},
-      ),
-    );
+  switch (index) {
+    case 0:
+      Navigator.pushNamed(context, '/collector_home');// Already on home
+    case 1:
+      Navigator.pushNamed(context, '/collector_map');
+      break;
+    case 2:
+      Navigator.pushNamed(context, '/collector_history');
+      break;
+    case 3:
+      Navigator.pushNamed(context, '/collector_profile'); // Profile page route
+      break;
   }
+}
+
 }

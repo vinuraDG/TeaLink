@@ -7,3 +7,5 @@ const Color kGrey = Color(0xFF91919F);
 const Color kWhite = Color(0xFFFFFFFF);
 const Color kBlack = Color(0xFF000000);
 const Color kbuttonColor = Color(0xFF090909);
+const Color kBNavigationColor = Color(0xFFF5F5F5);
+

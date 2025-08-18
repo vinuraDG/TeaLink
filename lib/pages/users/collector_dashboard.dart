@@ -1,3 +1,5 @@
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/widgets/dashboard_card.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -37,8 +39,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
   String userName = "";
   String greeting = "";
 
-  static const Color greenColor = Color(0xFF1B6600);
-
+ 
   @override
   void initState() {
     super.initState();
@@ -78,49 +79,44 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
   }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
+  setState(() => _selectedIndex = index);
 
-  Widget _buildCard({required Widget child, double height = 150}) {
-    return Container(
-      height: height,
-      width: 160,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: Offset(3, 3),
-          ),
-        ],
-      ),
-      child: Center(child: child),
-    );
+  switch (index) {
+    case 0:
+      Navigator.pushNamed(context, '/collector_home');// Already on home
+    case 1:
+      Navigator.pushNamed(context, '/collector_map');
+      break;
+    case 2:
+      Navigator.pushNamed(context, '/collector_history');
+      break;
+    case 3:
+      Navigator.pushNamed(context, '/collector_profile'); // Profile page route
+      break;
   }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
     const double avatarSize = 70;
 
     return Scaffold(
-      backgroundColor: greenColor,
+      backgroundColor: kMainColor,
       appBar: AppBar(
         
-        backgroundColor: greenColor,
+        backgroundColor: kMainColor,
         elevation: 0,
         centerTitle: true,
-        leading: const BackButton(color: Colors.white,),
+        leading: const BackButton(color: kWhite,),
         title: const Text(
           'COLLECTOR',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhite),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white,size: 28,),
+            icon: const Icon(Icons.logout, color: kWhite,size: 28,),
             onPressed: () async => await _logout(context),
           ),]
       ),
@@ -142,14 +138,14 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                           style: const TextStyle(
                               fontSize: 25,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                              color: kWhite),
                         ),
                         const SizedBox(height: 5),
                         Text(
                           greeting,
                           style: const TextStyle(
                             fontSize: 14,
-                            color: Colors.white70,
+                            color: kWhite,
                           ),
                         ),
                       ],
@@ -162,7 +158,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                     height: avatarSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                      border: Border.all(color: kWhite, width: 2),
                     image: const DecorationImage(
                       fit: BoxFit.cover,
                       image: AssetImage('assets/images/avatar.jpg'),
@@ -179,11 +175,11 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: kWhite,
                   borderRadius:
                       BorderRadius.vertical(top: Radius.circular(30)),
                 ),
-                child: SingleChildScrollView(
+                
                   child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,                 
                     children: [
@@ -193,40 +189,17 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
                           
-                          _buildCard(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.group, color: greenColor, size: 60),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Customers List',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: greenColor,
-                                  ),
-                                ),
-                              ],
+                          DashboardCard(
+                              title: "Customer List",
+                              icon: Icons.list_alt,
+                              onTap: () => Navigator.pushNamed(context, '/collector_customer_list'),
                             ),
-                          ),
-                          const SizedBox(height: 30,),
-                           _buildCard(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.add_box_outlined,
-                                color: greenColor, size: 60),
-                            SizedBox(height: 10),
-                            Text(
-                              'Add Weight',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: greenColor,
-                              ),
+                          const SizedBox(width: 20,),
+                           DashboardCard(
+                              title: "Add Weight",
+                              icon: Icons.add_circle_outline_rounded,
+                              onTap: () => Navigator.pushNamed(context, '/collector_add_weight'),
                             ),
-                          ],
-                        ),
-                      ),
                         ],
                       ),
                   
@@ -234,85 +207,32 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildCard(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
-                                Icon(Icons.map_outlined,
-                                    color: greenColor, size: 60),
-                                SizedBox(height: 10),
-                                Text(
-                                  'Map',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: greenColor,
-                                  ),
-                                ),
-                              ],
+                         DashboardCard(
+                              title: "Map",
+                              icon: Icons.map_outlined,
+                              onTap: () => Navigator.pushNamed(context, '/collector_map'),
                             ),
-                          ),
-                          const SizedBox(height: 30,),
+                          const SizedBox(width: 20,),
                            // Collection History
-                      _buildCard(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.checklist_rounded,
-                                color: greenColor, size: 60),
-                            SizedBox(height: 10),
-                            Text(
-                              'Collection History',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: greenColor,
-                              ),
-                              textAlign: TextAlign.center,
+                      DashboardCard(
+                              title: "Collection History",
+                              icon: Icons.history,
+                              onTap: () => Navigator.pushNamed(context, '/collector_collection_history'),
                             ),
-                          ],
-                        ),
-                      ),
                         ],
                       ),
                     const SizedBox(height: 20,),
                      
                   
-                      // Collector Profile
-                      Container(
-                        height: 130,
-                        width: double.infinity,
-                        
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 4,
-                              offset: Offset(3, 3),
+                      DashboardCard(
+                              title: "collector Profile",
+                              icon: Icons.settings,
+                              onTap: () => Navigator.pushNamed(context, '/collector_profile'),
+                               isWide: true,
                             ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.settings_outlined,
-                                  color: greenColor, size: 60),
-                              SizedBox(height: 10),
-                              Text(
-                                'Collector Profile',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: greenColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
                     ],
                   ),
-                ),
+                
               ),
             ),
           ],
@@ -322,7 +242,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: greenColor,
+        selectedItemColor: kMainColor,
         unselectedItemColor: Colors.black,
         showSelectedLabels: true,
         showUnselectedLabels: true,

@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/widgets/dashboard_card.dart' hide kBlack;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -125,20 +127,20 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
         return false;
       },
       child: Scaffold(
-        backgroundColor: Colors.green[700],
+        backgroundColor: kMainColor,
         appBar: AppBar(
-          iconTheme: const IconThemeData(color: Colors.white, size: 28),
-          backgroundColor: Colors.green[700],
+          iconTheme: const IconThemeData(color: kWhite, size: 28),
+          backgroundColor: kMainColor,
           title: const Center(
             child: Text(
               "CUSTOMER",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhite),
             ),
           ),
           elevation: 0,
           actions: [
             IconButton(
-              icon: const Icon(Icons.logout, color: Colors.white, size: 28),
+              icon: const Icon(Icons.logout, color: kWhite, size: 28),
               onPressed: () async => await _logout(context),
             ),
           ],
@@ -157,10 +159,10 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                         children: [
                           Text("Hello, ${displayName ?? '...'}",
                               style: const TextStyle(
-                                  color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold)),
+                                  color: kWhite, fontSize: 25, fontWeight: FontWeight.bold)),
                           Text(getGreeting(),
                               style: const TextStyle(
-                                  color: Colors.white70, fontWeight: FontWeight.bold)),
+                                  color: kWhite, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ),
@@ -183,25 +185,25 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: const BoxDecoration(
-                    color: Colors.white,
+                    color: kWhite,
                     borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                   ),
-                  child: SingleChildScrollView(
+                
                     child: Column(
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _dashboardCard(
+                            DashboardCard(
                               title: "Weekly Harvest",
                               subtitle: currentDate,
                               label: weeklyHarvest,
                             ),
-                            SizedBox(width: 20,),
-                            _dashboardCard(
+                            SizedBox(width: 5,),
+                            DashboardCard(
                               title: "Harvest Trends",
                               icon: Icons.insights,
-                              onTap: () => Navigator.pushNamed(context, '/trends'),
+                              onTap: () => Navigator.pushNamed(context, '/customer_trends'),
                             ),
                           ],
                         ),
@@ -209,41 +211,41 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            _dashboardCard(
+                            DashboardCard(
                               title: "Payment",
                               icon: Icons.payment,
-                              onTap: () => Navigator.pushNamed(context, '/payments'),
+                              onTap: () => Navigator.pushNamed(context, '/customer_payments'),
                             ),
-                             SizedBox(width: 20,),
-                            _dashboardCard(
+                             SizedBox(width: 5,),
+                            DashboardCard(
                               title: "Collector Info",
                               icon: Icons.person,
-                              onTap: () => Navigator.pushNamed(context, '/collector'),
+                              onTap: () => Navigator.pushNamed(context, '/customer_collector_info'),
                               disabled: true,
                             ),
                           ],
                         ),
                         const SizedBox(height: 20),
-                        _dashboardCard(
+                        DashboardCard(
                           title: "Customer Profile",
                           icon: Icons.settings,
-                          onTap: () => Navigator.pushNamed(context, '/profile'),
+                          onTap: () => Navigator.pushNamed(context, '/customer_profile'),
                           isWide: true,
                         ),
                       ],
                     ),
-                  ),
+                
                 ),
               ),
             ],
           ),
         ),
         bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: Colors.grey[200],
+          backgroundColor: kBNavigationColor,
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
-          selectedItemColor: Colors.green[800],
-          unselectedItemColor: Colors.black,
+          selectedItemColor: kMainColor,
+          unselectedItemColor: kBlack,
           showSelectedLabels: true,
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
@@ -265,43 +267,4 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,
     );
-  }
-
-  Widget _dashboardCard({
-    required String title,
-    IconData? icon,
-    String? subtitle,
-    String? label,
-    bool disabled = false,
-    bool isWide = false,
-    VoidCallback? onTap,
-  }) {
-    final card = Container(
-      width: isWide ? double.infinity : 165,
-      height: 150,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.black, width: 2.0),
-        color: disabled ? Colors.grey[200] : Colors.grey[100],
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 5)],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          if (label != null)
-            Text(label, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold)),
-          if (icon != null) Icon(icon, color: Colors.green, size: 60),
-          const SizedBox(height: 5),
-          Text(title, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
-          if (subtitle != null)
-            Text(subtitle, textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 15, color: Colors.grey, fontWeight: FontWeight.w500)),
-        ],
-      ),
-    );
-
-    return GestureDetector(onTap: disabled ? null : onTap, child: card);
-  }
-}
+  }}
