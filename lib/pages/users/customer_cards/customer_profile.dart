@@ -33,18 +33,18 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() => _selectedIndex = index);
 
     switch (index) {
-      case 0:
-        Navigator.pushReplacementNamed(context, '/Home');
-        break;
-      case 1:
-        Navigator.pushReplacementNamed(context, '/Trends');
-        break;
-      case 2:
-        Navigator.pushReplacementNamed(context, '/Payments');
-        break;
-      case 3:
-        break;
-    }
+    case 0:
+      Navigator.pushNamed(context, '/customer_home');// Already on home
+    case 1:
+      Navigator.pushNamed(context, '/customer_trends');
+      break;
+    case 2:
+      Navigator.pushNamed(context, '/customer_payments');
+      break;
+    case 3:
+      Navigator.pushNamed(context, '/customer_profile'); // Profile page route
+      break;
+  }
   }
 
   late TextEditingController nameController;

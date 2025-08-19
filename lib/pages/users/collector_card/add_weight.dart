@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:TeaLink/constants/colors.dart';
 
 class AddWeightPage extends StatefulWidget {
@@ -13,6 +14,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
   final TextEditingController regController = TextEditingController();
   final TextEditingController weightController = TextEditingController();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final User? currentUser = FirebaseAuth.instance.currentUser;
 
   Future<void> _addWeight() async {
     final regNumber = regController.text.trim();
@@ -29,7 +31,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
       final now = DateTime.now();
       final weekId = "${now.year}-W${((now.dayOfYear - 1) ~/ 7) + 1}";
 
-      // Save harvest record
+      // Save harvest record under the customer
       await _firestore
           .collection("customers")
           .doc(regNumber)
@@ -38,19 +40,32 @@ class _AddWeightPageState extends State<AddWeightPage> {
         "weight": weight,
         "date": now,
         "weekId": weekId,
+        "collectorId": currentUser?.uid, // who added it
+        "customerRegNo": regNumber,
       });
 
-      // Update weekly total
-      final weeklyDoc =
-          _firestore.collection("customers").doc(regNumber).collection("weekly").doc(weekId);
+      // Update weekly total for this customer
+      final weeklyDoc = _firestore
+          .collection("customers")
+          .doc(regNumber)
+          .collection("weekly")
+          .doc(weekId);
 
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(weeklyDoc);
         if (!snapshot.exists) {
-          transaction.set(weeklyDoc, {"total": weight});
+          transaction.set(weeklyDoc, {
+            "total": weight,
+            "weekId": weekId,
+            "customerRegNo": regNumber,
+            "lastUpdated": now,
+          });
         } else {
           final current = snapshot["total"] ?? 0;
-          transaction.update(weeklyDoc, {"total": current + weight});
+          transaction.update(weeklyDoc, {
+            "total": current + weight,
+            "lastUpdated": now,
+          });
         }
       });
 
@@ -85,7 +100,8 @@ class _AddWeightPageState extends State<AddWeightPage> {
           children: [
             TextField(
               controller: regController,
-              decoration: const InputDecoration(labelText: "Customer Reg Number"),
+              decoration:
+                  const InputDecoration(labelText: "Customer Reg Number"),
               keyboardType: TextInputType.text,
             ),
             const SizedBox(height: 15),
@@ -117,6 +133,9 @@ class _AddWeightPageState extends State<AddWeightPage> {
   }
 }
 
-extension on DateTime {
-  get dayOfYear => null;
+extension DateTimeExtension on DateTime {
+  int get dayOfYear {
+    final beginningOfYear = DateTime(year, 1, 1);
+    return difference(beginningOfYear).inDays + 1;
+  }
 }

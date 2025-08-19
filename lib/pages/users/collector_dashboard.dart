@@ -1,10 +1,12 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
 import 'package:TeaLink/widgets/dashboard_card.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:TeaLink/pages/login_page.dart';
+import 'package:TeaLink/pages/collector_customer_list_page.dart'; // ✅ NEW PAGE
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,12 @@ class MyApp extends StatelessWidget {
       ),
       home: const CollectorDashboard(),
       debugShowCheckedModeBanner: false,
+      routes: {
+        // ✅ NEW ROUTE
+        '/collector_customer_list': (context) => CollectorCustomerListPage(
+              collectorId: FirebaseAuth.instance.currentUser!.uid,
+            ),
+      },
     );
   }
 }
@@ -39,7 +47,6 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
   String userName = "";
   String greeting = "";
 
- 
   @override
   void initState() {
     super.initState();
@@ -63,7 +70,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final doc = await FirebaseFirestore.instance
-            .collection('users') // your collection name
+            .collection('users')
             .doc(user.uid)
             .get();
 
@@ -79,24 +86,22 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
   }
 
   void _onItemTapped(int index) {
-  setState(() => _selectedIndex = index);
+    setState(() => _selectedIndex = index);
 
-  switch (index) {
-    case 0:
-      Navigator.pushNamed(context, '/collector_home');// Already on home
-    case 1:
-      Navigator.pushNamed(context, '/collector_map');
-      break;
-    case 2:
-      Navigator.pushNamed(context, '/collector_history');
-      break;
-    case 3:
-      Navigator.pushNamed(context, '/collector_profile'); // Profile page route
-      break;
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/collector_home'); // Already on home
+      case 1:
+        Navigator.pushNamed(context, '/collector_map');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/collector_history');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/collector_profile');
+        break;
+    }
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -105,20 +110,20 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
     return Scaffold(
       backgroundColor: kMainColor,
       appBar: AppBar(
-        
         backgroundColor: kMainColor,
         elevation: 0,
         centerTitle: true,
-        leading: const BackButton(color: kWhite,),
+        leading: const BackButton(color: kWhite),
         title: const Text(
           'COLLECTOR',
           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhite),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout, color: kWhite,size: 28,),
+            icon: const Icon(Icons.logout, color: kWhite, size: 28),
             onPressed: () async => await _logout(context),
-          ),]
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -159,10 +164,10 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: kWhite, width: 2),
-                    image: const DecorationImage(
-                      fit: BoxFit.cover,
-                      image: AssetImage('assets/images/avatar.jpg'),
-                    ),
+                      image: const DecorationImage(
+                        fit: BoxFit.cover,
+                        image: AssetImage('assets/images/avatar.jpg'),
+                      ),
                     ),
                   ),
                 ],
@@ -172,73 +177,78 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
             // White background container with cards
             Expanded(
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                 decoration: const BoxDecoration(
                   color: kWhite,
-                  borderRadius:
-                      BorderRadius.vertical(top: Radius.circular(30)),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                 ),
-                
-                  child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,                 
-                    children: [
-                      const SizedBox(height: 10,),
-                      // Customers List
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          
-                          DashboardCard(
-                              title: "Customer List",
-                              icon: Icons.list_alt,
-                              onTap: () => Navigator.pushNamed(context, '/collector_customer_list'),
-                            ),
-                          const SizedBox(width: 20,),
-                           DashboardCard(
-                              title: "Add Weight",
-                              icon: Icons.add_circle_outline_rounded,
-                              onTap: () => Navigator.pushNamed(context, '/collector_add_weight'),
-                            ),
-                        ],
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 10),
+                    // Customers List + Add Weight
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        DashboardCard(
+                          title: "Customer List",
+                          icon: Icons.list_alt,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/collector_customer_list',
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        DashboardCard(
+                          title: "Add Weight",
+                          icon: Icons.add_circle_outline_rounded,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/collector_add_weight',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        DashboardCard(
+                          title: "Map",
+                          icon: Icons.map_outlined,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/collector_map',
+                          ),
+                        ),
+                        const SizedBox(width: 20),
+                        DashboardCard(
+                          title: "Collection History",
+                          icon: Icons.history,
+                          onTap: () => Navigator.pushNamed(
+                            context,
+                            '/collector_collection_history',
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    DashboardCard(
+                      title: "collector Profile",
+                      icon: Icons.settings,
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/collector_profile',
                       ),
-                  
-                      const SizedBox(height: 20,),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                         DashboardCard(
-                              title: "Map",
-                              icon: Icons.map_outlined,
-                              onTap: () => Navigator.pushNamed(context, '/collector_map'),
-                            ),
-                          const SizedBox(width: 20,),
-                           // Collection History
-                      DashboardCard(
-                              title: "Collection History",
-                              icon: Icons.history,
-                              onTap: () => Navigator.pushNamed(context, '/collector_collection_history'),
-                            ),
-                        ],
-                      ),
-                    const SizedBox(height: 20,),
-                     
-                  
-                      DashboardCard(
-                              title: "collector Profile",
-                              icon: Icons.settings,
-                              onTap: () => Navigator.pushNamed(context, '/collector_profile'),
-                               isWide: true,
-                            ),
-                    ],
-                  ),
-                
+                      isWide: true,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
         ),
       ),
-      
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -246,14 +256,11 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
         unselectedItemColor: Colors.black,
         showSelectedLabels: true,
         showUnselectedLabels: true,
-
-        
         elevation: 0,
         backgroundColor: Colors.grey[200],
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-            
             icon: Icon(Icons.home_rounded),
             label: 'Home',
           ),
@@ -276,10 +283,10 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
 }
 
 Future<void> _logout(BuildContext context) async {
-    await FirebaseAuth.instance.signOut();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const LoginPage()),
-      (route) => false,
-    );
-  }
+  await FirebaseAuth.instance.signOut();
+  Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(builder: (_) => const LoginPage()),
+    (route) => false,
+  );
+}

@@ -29,7 +29,7 @@ class DashboardCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = Container(
       width: isWide ? double.infinity : 155,
-      height: 145,
+      height: 137,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: disabled ? Colors.grey[200] : Colors.grey[100],

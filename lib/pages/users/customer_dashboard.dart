@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:TeaLink/constants/colors.dart';
-import 'package:TeaLink/widgets/dashboard_card.dart' hide kBlack;
+import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
+import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
+import 'package:TeaLink/widgets/dashboard_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -50,12 +52,29 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   Future<void> fetchWeeklyHarvest() async {
     if (user != null) {
       try {
-        final harvestDoc = await FirebaseFirestore.instance
-            .collection('harvest')
+        final userDoc = await FirebaseFirestore.instance
+            .collection('users')
             .doc(user!.uid)
             .get();
+
+        final regNo = userDoc.data()?['regNo'];
+        if (regNo == null) {
+          setState(() => weeklyHarvest = '0kg');
+          return;
+        }
+
+        final now = DateTime.now();
+        final weekId = "${now.year}-W${((now.dayOfYear - 1) ~/ 7) + 1}";
+
+        final weeklyDoc = await FirebaseFirestore.instance
+            .collection('customers')
+            .doc(regNo)
+            .collection('weekly')
+            .doc(weekId)
+            .get();
+
         setState(() {
-          weeklyHarvest = "${harvestDoc.data()?['weeklyAmount'] ?? 0}kg";
+          weeklyHarvest = "${weeklyDoc.data()?['total'] ?? 0}kg";
         });
       } catch (e) {
         setState(() => weeklyHarvest = '0kg');
@@ -95,22 +114,22 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
   }
 
   void _onItemTapped(int index) {
-  setState(() => _selectedIndex = index);
+    setState(() => _selectedIndex = index);
 
-  switch (index) {
-    case 0:
-      Navigator.pushNamed(context, '/home');// Already on home
-    case 1:
-      Navigator.pushNamed(context, '/trends');
-      break;
-    case 2:
-      Navigator.pushNamed(context, '/payments');
-      break;
-    case 3:
-      Navigator.pushNamed(context, '/profile'); // Profile page route
-      break;
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/customer_home');
+      case 1:
+        Navigator.pushNamed(context, '/customer_trends');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/customer_payments');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/customer_profile');
+        break;
+    }
   }
-}
 
   String getGreeting() {
     final hour = DateTime.now().hour;
@@ -118,6 +137,58 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     if (hour < 17) return "Good Afternoon";
     return "Good Evening";
   }
+
+Future<void> _notifyCollector(BuildContext context) async {
+  if (user == null) return;
+
+  try {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .get();
+
+    final regNo = userDoc.data()?['regNo'];
+    final name = userDoc.data()?['name'] ?? 'Unknown';
+    final collectorId = userDoc.data()?['collectorId'];
+
+    if (regNo == null || collectorId == null) return;
+
+    // Save to collector's todayHarvest collection
+    await FirebaseFirestore.instance
+        .collection('collectors')
+        .doc(collectorId)
+        .collection('todayHarvest')
+        .doc(regNo)
+        .set({
+      'name': name,
+      'regNo': regNo,
+      'status': 'Pending',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Show popup dialog to customer
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Notification Sent'),
+        content: const Text('The collector has been notified about today\'s harvest.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Failed to notify: $e')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +234,24 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                           Text(getGreeting(),
                               style: const TextStyle(
                                   color: kWhite, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 10),
+
+                          // New Notify Button
+                         ElevatedButton.icon(
+  onPressed: () => _notifyCollector(context),
+  icon: const Icon(Icons.notifications_active, color: kWhite),
+  label: const Text(
+    "Notify Collector",
+    style: TextStyle(color: kWhite, fontWeight: FontWeight.bold),
+  ),
+  style: ElevatedButton.styleFrom(
+    backgroundColor: Colors.green,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
+),
+
                         ],
                       ),
                     ),
@@ -188,53 +277,51 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                     color: kWhite,
                     borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
                   ),
-                
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            DashboardCard(
-                              title: "Weekly Harvest",
-                              subtitle: currentDate,
-                              label: weeklyHarvest,
-                            ),
-                            SizedBox(width: 5,),
-                            DashboardCard(
-                              title: "Harvest Trends",
-                              icon: Icons.insights,
-                              onTap: () => Navigator.pushNamed(context, '/customer_trends'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            DashboardCard(
-                              title: "Payment",
-                              icon: Icons.payment,
-                              onTap: () => Navigator.pushNamed(context, '/customer_payments'),
-                            ),
-                             SizedBox(width: 5,),
-                            DashboardCard(
-                              title: "Collector Info",
-                              icon: Icons.person,
-                              onTap: () => Navigator.pushNamed(context, '/customer_collector_info'),
-                              disabled: true,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 20),
-                        DashboardCard(
-                          title: "Customer Profile",
-                          icon: Icons.settings,
-                          onTap: () => Navigator.pushNamed(context, '/customer_profile'),
-                          isWide: true,
-                        ),
-                      ],
-                    ),
-                
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          DashboardCard(
+                            title: "Weekly Harvest",
+                            subtitle: currentDate,
+                            label: weeklyHarvest,
+                          ),
+                          const SizedBox(width: 5),
+                          DashboardCard(
+                            title: "Harvest Trends",
+                            icon: Icons.insights,
+                            onTap: () => Navigator.pushNamed(context, '/customer_trends'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          DashboardCard(
+                            title: "Payment",
+                            icon: Icons.payment,
+                            onTap: () => Navigator.pushNamed(context, '/customer_payments'),
+                          ),
+                          const SizedBox(width: 5),
+                          DashboardCard(
+                            title: "Collector Info",
+                            icon: Icons.person,
+                            onTap: () => Navigator.pushNamed(context, '/customer_collector_info'),
+                            disabled: true,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      DashboardCard(
+                        title: "Customer Profile",
+                        icon: Icons.settings,
+                        onTap: () => Navigator.pushNamed(context, '/customer_profile'),
+                        isWide: true,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -267,4 +354,5 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       MaterialPageRoute(builder: (_) => const LoginPage()),
       (route) => false,
     );
-  }}
+  }
+}

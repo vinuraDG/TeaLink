@@ -1,3 +1,5 @@
+import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
+import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/customer_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/payment.dart';
@@ -55,11 +57,11 @@ class MyApp extends StatelessWidget {
         '/customer_profile': (context) =>  ProfilePage(),
         '/customer_trends': (context) => TrendsPage(),
         '/customer_payments': (context) => PaymentsPage(),
-        '/customer_Home': (context) => CustomerDashboard(),
+        '/customer_home': (context) => CustomerDashboard(),
 
         '/collectorDashboard': (context) => CollectorDashboard(),
-        '/collector_customer_list': (context) =>  ProfilePage(),
-        '/collector_add_weight': (context) => TrendsPage(),
+        '/collector_customer_list': (context) =>  CollectorCustomerListPage(collectorId: '',),
+        '/collector_add_weight': (context) => AddWeightPage(),
         '/collector_map': (context) => PaymentsPage(),
         '/collector_history': (context) => CustomerDashboard(),
          '/collector_profile': (context) =>  CollectorProfile(),
