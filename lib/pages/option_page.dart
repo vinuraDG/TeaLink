@@ -85,13 +85,13 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
     setState(() {
       isLoadingCollectors = true;
     });
-    
+
     try {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .where('role', whereIn: ['Collector', 'collector', 'COLLECTOR'])
           .get();
-      
+
       setState(() {
         collectors = querySnapshot.docs.map((doc) {
           final data = doc.data();
@@ -102,24 +102,35 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
             'phone': data['phone'] ?? '',
           };
         }).toList();
-        isLoadingCollectors = false;
       });
     } catch (e) {
-      setState(() {
-        isLoadingCollectors = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to load collectors: $e")),
       );
+    } finally {
+      setState(() {
+        isLoadingCollectors = false;
+      });
     }
   }
 
-  // Create customer-collector connection
-  Future<void> createCustomerCollectorConnection(String customerId, String collectorId) async {
+  // Create customer-collector connection (ensure one active link)
+  Future<void> createCustomerCollectorConnection(
+      String customerId, String collectorId) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('customer_collector_connections')
-          .add({
+      final connectionRef =
+          FirebaseFirestore.instance.collection('customer_collector_connections');
+
+      // remove any previous active connections for this customer
+      final existing =
+          await connectionRef.where('customerId', isEqualTo: customerId).get();
+
+      for (var doc in existing.docs) {
+        await doc.reference.delete();
+      }
+
+      // create new active connection
+      await connectionRef.add({
         'customerId': customerId,
         'collectorId': collectorId,
         'createdAt': FieldValue.serverTimestamp(),
@@ -130,6 +141,53 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
     }
   }
 
+  // Complete customer registration after selecting collector
+  Future<void> completeCustomerRegistration() async {
+    if (selectedCollectorId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a collector")),
+      );
+      return;
+    }
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      // Update user role in users collection
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .update({'role': 'Customer'});
+
+      // Link this customer to the selected collector
+      await createCustomerCollectorConnection(uid, selectedCollectorId!);
+
+      // Save session
+      await SessionManager.saveUserRole('Customer');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Registration completed successfully!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navigate to dashboard
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => CustomerDashboard()),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to complete registration: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void navigateToRolePage(BuildContext context, String role) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -137,29 +195,38 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
     final docRef = FirebaseFirestore.instance.collection('users').doc(uid);
     final doc = await docRef.get();
 
+    // prevent changing role if already assigned
     if (doc.exists && doc.data()?['role'] != null && doc['role'] != '') {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("You already registered as ${doc['role']}. Cannot change role.")),
+        SnackBar(
+          content: Text(
+              "You already registered as ${doc['role']}. Cannot change role."),
+        ),
       );
       return;
     }
 
-    // If customer role is selected, show collector dropdown
     if (role.toLowerCase() == 'customer') {
+      // always fetch full list of collectors
       await fetchCollectors();
       setState(() {
         showCollectorDropdown = true;
+        selectedCollectorId = null; // reset selection
       });
       return;
     }
 
-    // For admin and collector roles, proceed directly
+    // For admin/collector: assign role immediately
     await updateUserRole(context, role, uid);
   }
 
-  Future<void> updateUserRole(BuildContext context, String role, String uid) async {
+  Future<void> updateUserRole(
+      BuildContext context, String role, String uid) async {
     try {
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({'role': role});
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .update({'role': role});
       await SessionManager.saveUserRole(role);
 
       if (role.toLowerCase() == 'customer') {
@@ -183,47 +250,6 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to update role: $e")),
-      );
-    }
-  }
-
-  Future<void> completeCustomerRegistration() async {
-    if (selectedCollectorId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select a collector")),
-      );
-      return;
-    }
-
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-
-    try {
-      // Update user role
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({'role': 'Customer'});
-      
-      // Create customer-collector connection
-      await createCustomerCollectorConnection(uid, selectedCollectorId!);
-      
-      await SessionManager.saveUserRole('Customer');
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Registration completed successfully!"),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => CustomerDashboard()),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Failed to complete registration: $e"),
-          backgroundColor: Colors.red,
-        ),
       );
     }
   }
@@ -272,7 +298,9 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
             color: Colors.grey[300],
             borderRadius: BorderRadius.circular(30),
           ),
-          child: showCollectorDropdown ? _buildCollectorSelection() : _buildRoleSelection(),
+          child: showCollectorDropdown
+              ? _buildCollectorSelection()
+              : _buildRoleSelection(),
         ),
       ),
     );
@@ -370,7 +398,6 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
                               fontSize: 12,
                             ),
                           ),
-                       
                       ],
                     ),
                   );
@@ -390,12 +417,15 @@ class _RoleSelectionPageState extends State<RoleSelectionPage> {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                backgroundColor: selectedCollectorId != null ? Colors.green[700] : Colors.grey,
+                backgroundColor: selectedCollectorId != null
+                    ? Colors.green[700]
+                    : Colors.grey,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
               ),
-              onPressed: selectedCollectorId != null ? completeCustomerRegistration : null,
+              onPressed:
+                  selectedCollectorId != null ? completeCustomerRegistration : null,
               child: const Text(
                 'Complete Registration',
                 style: TextStyle(

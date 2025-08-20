@@ -57,8 +57,9 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
             .doc(user!.uid)
             .get();
 
-        final regNo = userDoc.data()?['regNo'];
-        if (regNo == null) {
+        // ✅ FIXED: Use 'registrationNumber' instead of 'regNo'
+        final regNo = userDoc.data()?['registrationNumber'];
+        if (regNo == null || regNo.isEmpty) {
           setState(() => weeklyHarvest = '0kg');
           return;
         }
@@ -139,7 +140,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return "Good Evening";
   }
 
-  // ✅ NOTIFY COLLECTOR WITH APPLICATION TIMESTAMP
+  // ✅ FIXED NOTIFY COLLECTOR METHOD
   Future<void> _notifyCollector(BuildContext context) async {
     if (user == null) return;
 
@@ -150,13 +151,39 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
           .doc(user!.uid)
           .get();
 
-      final regNo = userDoc.data()?['regNo'];
+      // ✅ FIXED: Use correct field names
+      final regNo = userDoc.data()?['registrationNumber']; // Changed from 'regNo'
       final name = userDoc.data()?['name'] ?? 'Unknown';
-      final collectorId = userDoc.data()?['collectorId'];
 
-      if (regNo == null || collectorId == null) {
+      // ✅ FIXED: Get collectorId from customer_collector_connections
+      String? collectorId;
+      
+      try {
+        final connectionQuery = await FirebaseFirestore.instance
+            .collection('customer_collector_connections')
+            .where('customerId', isEqualTo: user!.uid)
+            .where('status', isEqualTo: 'active')
+            .limit(1)
+            .get();
+
+        if (connectionQuery.docs.isNotEmpty) {
+          collectorId = connectionQuery.docs.first.data()['collectorId'];
+        }
+      } catch (e) {
+        print('Error getting collector connection: $e');
+      }
+
+      // Validation checks
+      if (regNo == null || regNo.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Missing registration number or collector ID')),
+          const SnackBar(content: Text('Registration number not found. Please update your profile.')),
+        );
+        return;
+      }
+
+      if (collectorId == null || collectorId.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No active collector assigned. Please contact admin.')),
         );
         return;
       }
@@ -165,15 +192,16 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       final formattedDate = DateFormat('yyyy-MM-dd').format(now);
       final formattedTime = DateFormat('HH:mm:ss').format(now);
 
-      // 👇 Use app timestamp instead of serverTimestamp
+      // Create notification document
       await FirebaseFirestore.instance.collection('notify_for_collection').add({
-        'uid': user!.uid,
+        'customerId': user!.uid, 
         'name': name,
-        'regNo': regNo,
+        'regNo': regNo, // This can stay as 'regNo' for the notification
         'collectorId': collectorId,
         'date': formattedDate,
         'time': formattedTime,
-        'createdAt': Timestamp.fromDate(now), // app timestamp!
+        'status': 'Pending', 
+        'createdAt': Timestamp.fromDate(now), // Using app timestamp
       });
 
       showDialog(

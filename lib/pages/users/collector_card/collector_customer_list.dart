@@ -1,129 +1,152 @@
+import 'package:TeaLink/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class CollectorCustomerListPage extends StatelessWidget {
+class CollectorNotificationPage extends StatelessWidget {
   final String collectorId;
 
-  const CollectorCustomerListPage({super.key, required this.collectorId});
+  const CollectorNotificationPage({super.key, required this.collectorId});
 
   @override
   Widget build(BuildContext context) {
-    // Define start and end of today
-    final now = DateTime.now();
-    final startOfDay = DateTime(now.year, now.month, now.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
+    final CollectionReference notifyCollection =
+        FirebaseFirestore.instance.collection('notify_for_collection');
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          "Today's Customer List",
-          style: TextStyle(fontWeight: FontWeight.bold),
+          "Customer Notifications",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: kWhite,
+          ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.green[800],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite),
+          onPressed: () => Navigator.pop(context),
+        ),
+        backgroundColor: kMainColor,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('collectors')
-            .doc(collectorId)
-            .collection('todayHarvest')
-            .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-            .where('timestamp', isLessThan: Timestamp.fromDate(endOfDay))
-            .orderBy('timestamp', descending: false) // oldest first
+        stream: notifyCollection
+            .where('collectorId', isEqualTo: collectorId)
+            .where('status', isEqualTo: 'Pending')
+            // Use startAt to avoid errors if some docs are missing createdAt
+            .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(
+
+          if (snapshot.hasError) {
+            return Center(
               child: Text(
-                "No customers have notified today.",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                "Failed to load notifications.\nError: ${snapshot.error}",
+                textAlign: TextAlign.center,
               ),
             );
           }
 
-          final customers = snapshot.data!.docs;
+          final notifications = snapshot.data?.docs ?? [];
+
+          if (notifications.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.notifications_off, size: 80, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    "No pending notifications",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "All customers have been collected today",
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                ],
+              ),
+            );
+          }
 
           return ListView.builder(
-            itemCount: customers.length,
             padding: const EdgeInsets.all(16),
+            itemCount: notifications.length,
             itemBuilder: (context, index) {
-              final data = customers[index].data() as Map<String, dynamic>;
-              final name = data['name'] ?? "Unknown";
-              final regNo = data['regNo'] ?? "N/A";
-              final status = data['status'] ?? "Pending";
+              final doc = notifications[index];
+              final data = doc.data() as Map<String, dynamic>? ?? {};
+
+              final customerName = data['name']?.toString() ?? 'Unknown';
+              final regNo = data['regNo']?.toString() ?? 'N/A';
+
+              // Safely parse createdAt
+              DateTime createdAt;
+              try {
+                createdAt = (data['createdAt'] as Timestamp).toDate();
+              } catch (_) {
+                createdAt = DateTime.now();
+              }
+
+              final date =
+                  "${createdAt.year}-${createdAt.month.toString().padLeft(2, '0')}-${createdAt.day.toString().padLeft(2, '0')}";
+              final time =
+                  "${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}";
 
               return Card(
-                margin: const EdgeInsets.symmetric(vertical: 10),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                elevation: 5,
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                elevation: 3,
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(16),
                   leading: CircleAvatar(
-                    radius: 28,
-                    backgroundColor: status == "Collected"
-                        ? Colors.grey
-                        : Colors.green[700],
+                    radius: 25,
+                    backgroundColor: Colors.green[700],
                     child: Text(
-                      name.isNotEmpty ? name[0].toUpperCase() : "?",
-                      style: const TextStyle(color: Colors.white, fontSize: 20),
+                      customerName.isNotEmpty ? customerName[0].toUpperCase() : "?",
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                   title: Text(
-                    name,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
+                    customerName,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 6.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("RegNo: $regNo"),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            const Text(
-                              "Status: ",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            Text(
-                              status,
-                              style: TextStyle(
-                                color: status == "Collected"
-                                    ? Colors.grey[700]
-                                    : Colors.orange[800],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Text('Reg No: $regNo', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 2),
+                      Text('Requested: $date at $time', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    ],
                   ),
-                  trailing: status == "Collected"
-    ? const Icon(Icons.check_circle, color: Colors.grey, size: 30)
-    : IconButton(
-        icon: const Icon(Icons.check_circle,
-            color: Colors.green, size: 32),
-        tooltip: "Mark as Collected",
-        onPressed: () async {
-          final docId = customers[index].id; // use Firestore doc ID
-          await FirebaseFirestore.instance
-              .collection('collectors')
-              .doc(collectorId)
-              .collection('todayHarvest')
-              .doc(docId)
-              .update({'status': "Collected"});
-        },
-      ),
-
+                  trailing: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    ),
+                    child: const Text(
+                      "Mark as Collected",
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    onPressed: () async {
+                      try {
+                        await doc.reference.update({'status': 'Collected'});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('$customerName marked as Collected'), duration: const Duration(seconds: 1)),
+                        );
+                        // StreamBuilder auto-updates
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to update: $e'), duration: const Duration(seconds: 2)),
+                        );
+                      }
+                    },
+                  ),
                 ),
               );
             },

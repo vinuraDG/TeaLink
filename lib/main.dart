@@ -60,7 +60,7 @@ class MyApp extends StatelessWidget {
         '/customer_home': (context) => CustomerDashboard(),
 
         '/collectorDashboard': (context) => CollectorDashboard(),
-        '/collector_customer_list': (context) =>  CollectorCustomerListPage(collectorId: '',),
+        '/collector_customer_list': (context) =>  CollectorNotificationPage(collectorId: 'Mp6JaThEySXixLOGTatKOTm6Y9l2',),
         '/collector_add_weight': (context) => AddWeightPage(),
         '/collector_map': (context) => PaymentsPage(),
         '/collector_history': (context) => CustomerDashboard(),

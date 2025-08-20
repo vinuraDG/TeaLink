@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       routes: {
         // ✅ NEW ROUTE
-        '/collector_customer_list': (context) => CollectorCustomerListPage(
+        '/collector_customer_list': (context) => CollectorNotificationPage(
               collectorId: FirebaseAuth.instance.currentUser!.uid,
             ),
       },
