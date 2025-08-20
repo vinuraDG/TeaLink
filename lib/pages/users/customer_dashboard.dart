@@ -119,6 +119,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     switch (index) {
       case 0:
         Navigator.pushNamed(context, '/customer_home');
+        break;
       case 1:
         Navigator.pushNamed(context, '/customer_trends');
         break;
@@ -138,57 +139,63 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
     return "Good Evening";
   }
 
-Future<void> _notifyCollector(BuildContext context) async {
-  if (user == null) return;
+  // ✅ NOTIFY COLLECTOR WITH APPLICATION TIMESTAMP
+  Future<void> _notifyCollector(BuildContext context) async {
+    if (user == null) return;
 
-  try {
-    final userDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user!.uid)
-        .get();
+    try {
+      // Get user document
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .get();
 
-    final regNo = userDoc.data()?['regNo'];
-    final name = userDoc.data()?['name'] ?? 'Unknown';
-    final collectorId = userDoc.data()?['collectorId'];
+      final regNo = userDoc.data()?['regNo'];
+      final name = userDoc.data()?['name'] ?? 'Unknown';
+      final collectorId = userDoc.data()?['collectorId'];
 
-    if (regNo == null || collectorId == null) return;
+      if (regNo == null || collectorId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Missing registration number or collector ID')),
+        );
+        return;
+      }
 
-    // Save to collector's todayHarvest collection
-    await FirebaseFirestore.instance
-        .collection('collectors')
-        .doc(collectorId)
-        .collection('todayHarvest')
-        .doc(regNo)
-        .set({
-      'name': name,
-      'regNo': regNo,
-      'status': 'Pending',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+      final now = DateTime.now();
+      final formattedDate = DateFormat('yyyy-MM-dd').format(now);
+      final formattedTime = DateFormat('HH:mm:ss').format(now);
 
-    // Show popup dialog to customer
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Notification Sent'),
-        content: const Text('The collector has been notified about today\'s harvest.'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed to notify: $e')),
-    );
+      // 👇 Use app timestamp instead of serverTimestamp
+      await FirebaseFirestore.instance.collection('notify_for_collection').add({
+        'uid': user!.uid,
+        'name': name,
+        'regNo': regNo,
+        'collectorId': collectorId,
+        'date': formattedDate,
+        'time': formattedTime,
+        'createdAt': Timestamp.fromDate(now), // app timestamp!
+      });
+
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Notification Sent'),
+          content: const Text(
+              'The collector has been notified about today\'s harvest.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to notify: $e')),
+      );
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -235,23 +242,20 @@ Future<void> _notifyCollector(BuildContext context) async {
                               style: const TextStyle(
                                   color: kWhite, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 10),
-
-                          // New Notify Button
-                         ElevatedButton.icon(
-  onPressed: () => _notifyCollector(context),
-  icon: const Icon(Icons.notifications_active, color: kWhite),
-  label: const Text(
-    "Notify Collector",
-    style: TextStyle(color: kWhite, fontWeight: FontWeight.bold),
-  ),
-  style: ElevatedButton.styleFrom(
-    backgroundColor: Colors.green,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12),
-    ),
-  ),
-),
-
+                          ElevatedButton.icon(
+                            onPressed: () => _notifyCollector(context),
+                            icon: const Icon(Icons.notifications_active, color: kWhite),
+                            label: const Text(
+                              "Notify Collector",
+                              style: TextStyle(color: kWhite, fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -267,8 +271,6 @@ Future<void> _notifyCollector(BuildContext context) async {
                   ],
                 ),
               ),
-
-              // White content container
               Expanded(
                 child: Container(
                   width: double.infinity,

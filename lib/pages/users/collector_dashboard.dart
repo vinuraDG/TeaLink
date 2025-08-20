@@ -250,6 +250,8 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w900),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w900),
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         selectedItemColor: kMainColor,
