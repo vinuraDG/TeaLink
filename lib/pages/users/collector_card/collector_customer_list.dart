@@ -2,10 +2,18 @@ import 'package:TeaLink/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class CollectorNotificationPage extends StatelessWidget {
+class CollectorNotificationPage extends StatefulWidget {
   final String collectorId;
 
   const CollectorNotificationPage({super.key, required this.collectorId});
+
+  @override
+  _CollectorNotificationPageState createState() =>
+      _CollectorNotificationPageState();
+}
+
+class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
+  int _selectedIndex = 3;
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +39,8 @@ class CollectorNotificationPage extends StatelessWidget {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: notifyCollection
-            .where('collectorId', isEqualTo: collectorId)
+            .where('collectorId', isEqualTo: widget.collectorId)
             .where('status', isEqualTo: 'Pending')
-            // Use startAt to avoid errors if some docs are missing createdAt
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -57,11 +64,15 @@ class CollectorNotificationPage extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.notifications_off, size: 80, color: Colors.grey[400]),
+                  Icon(Icons.notifications_off,
+                      size: 80, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     "No pending notifications",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey[600]),
+                    style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -83,7 +94,6 @@ class CollectorNotificationPage extends StatelessWidget {
               final customerName = data['name']?.toString() ?? 'Unknown';
               final regNo = data['regNo']?.toString() ?? 'N/A';
 
-              // Safely parse createdAt
               DateTime createdAt;
               try {
                 createdAt = (data['createdAt'] as Timestamp).toDate();
@@ -98,7 +108,8 @@ class CollectorNotificationPage extends StatelessWidget {
 
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15)),
                 elevation: 3,
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(16),
@@ -106,43 +117,62 @@ class CollectorNotificationPage extends StatelessWidget {
                     radius: 25,
                     backgroundColor: Colors.green[700],
                     child: Text(
-                      customerName.isNotEmpty ? customerName[0].toUpperCase() : "?",
-                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      customerName.isNotEmpty
+                          ? customerName[0].toUpperCase()
+                          : "?",
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                   title: Text(
                     customerName,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text('Reg No: $regNo', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      Text('Reg No: $regNo',
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 2),
-                      Text('Requested: $date at $time', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text('Requested: $date at $time',
+                          style:
+                              const TextStyle(fontSize: 12, color: Colors.grey)),
                     ],
                   ),
                   trailing: ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green[700],
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                     ),
                     child: const Text(
                       "Mark as Collected",
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white),
                     ),
                     onPressed: () async {
                       try {
                         await doc.reference.update({'status': 'Collected'});
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('$customerName marked as Collected'), duration: const Duration(seconds: 1)),
+                          SnackBar(
+                              content:
+                                  Text('$customerName marked as Collected'),
+                              duration: const Duration(seconds: 1)),
                         );
-                        // StreamBuilder auto-updates
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to update: $e'), duration: const Duration(seconds: 2)),
+                          SnackBar(
+                              content: Text('Failed to update: $e'),
+                              duration: const Duration(seconds: 2)),
                         );
                       }
                     },
@@ -153,6 +183,54 @@ class CollectorNotificationPage extends StatelessWidget {
           );
         },
       ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: kMainColor,
+        unselectedItemColor: Colors.black,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        elevation: 0,
+        backgroundColor: Colors.grey[200],
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_rounded),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_sharp),
+            label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
     );
+  }
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/collector_home');
+        break;
+      case 1:
+        Navigator.pushNamed(context, '/collector_map');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/collector_history');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/collector_profile');
+        break;
+    }
   }
 }

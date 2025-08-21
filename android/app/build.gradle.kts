@@ -9,14 +9,14 @@ plugins {
 
 android {
     namespace = "com.example.tealink"
-    compileSdk = 35        // UPDATED
+    compileSdk = 36        // UPDATED
 
     ndkVersion = "27.0.12077973"
 
     defaultConfig {
         applicationId = "com.example.tealink"
         minSdk = 24
-        targetSdk = 35     // UPDATED
+        targetSdk = 36    // UPDATED
         versionCode = 1
         versionName = "1.0"
     }

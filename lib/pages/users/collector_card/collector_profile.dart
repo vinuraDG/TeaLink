@@ -246,20 +246,19 @@ class _CollectorProfileState extends State<CollectorProfile> {
         ),
       ),
        bottomNavigationBar: BottomNavigationBar(
+        selectedLabelStyle: TextStyle(fontWeight: FontWeight.w900),
+        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.w900),
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         selectedItemColor: kMainColor,
         unselectedItemColor: Colors.black,
         showSelectedLabels: true,
         showUnselectedLabels: true,
-
-        
         elevation: 0,
         backgroundColor: Colors.grey[200],
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-            
             icon: Icon(Icons.home_rounded),
             label: 'Home',
           ),

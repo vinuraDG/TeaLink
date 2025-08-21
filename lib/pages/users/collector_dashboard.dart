@@ -6,7 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:TeaLink/pages/login_page.dart';
-import 'package:TeaLink/pages/collector_customer_list_page.dart'; // ✅ NEW PAGE
+// ✅ NEW PAGE
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -227,7 +227,7 @@ class _CollectorDashboardState extends State<CollectorDashboard> {
                           icon: Icons.history,
                           onTap: () => Navigator.pushNamed(
                             context,
-                            '/collector_collection_history',
+                            '/collector_history',
                           ),
                         ),
                       ],

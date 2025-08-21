@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:TeaLink/constants/colors.dart';
 import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
-import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
 import 'package:TeaLink/widgets/dashboard_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
