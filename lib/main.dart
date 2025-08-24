@@ -2,6 +2,7 @@ import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
 import 'package:TeaLink/pages/users/collector_card/collection_history.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_profile.dart';
+import 'package:TeaLink/pages/users/customer_cards/collector_info.dart';
 import 'package:TeaLink/pages/users/customer_cards/customer_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/payment.dart';
 import 'package:TeaLink/pages/users/customer_cards/trend.dart';
@@ -59,10 +60,11 @@ class MyApp extends StatelessWidget {
         '/customer_trends': (context) => TrendsPage(),
         '/customer_payments': (context) => PaymentsPage(),
         '/customer_home': (context) => CustomerDashboard(),
+        '/customer_collector_info': (context) => CollectorInfoPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',), 
 
         '/collectorDashboard': (context) => CollectorDashboard(),
         '/collector_customer_list': (context) =>  CollectorNotificationPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',),
-        '/collector_add_weight': (context) => AddWeightPage(),
+        
         '/collector_map': (context) => PaymentsPage(),
         '/collector_history': (context) => CollectionHistoryPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',),
          '/collector_profile': (context) =>  CollectorProfile(),

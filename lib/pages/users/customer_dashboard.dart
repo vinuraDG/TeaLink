@@ -338,7 +338,7 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
                             title: "Collector Info",
                             icon: Icons.person,
                             onTap: () => Navigator.pushNamed(context, '/customer_collector_info'),
-                            disabled: true,
+                            
                           ),
                         ],
                       ),
@@ -384,4 +384,8 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
       (route) => false,
     );
   }
+}
+
+extension on DateTime {
+  get dayOfYear => null;
 }
