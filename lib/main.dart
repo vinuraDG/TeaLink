@@ -1,4 +1,3 @@
-import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
 import 'package:TeaLink/pages/users/collector_card/collection_history.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_profile.dart';

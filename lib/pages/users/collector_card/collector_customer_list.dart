@@ -1,4 +1,5 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -159,23 +160,30 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white),
                     ),
-                    onPressed: () async {
-                      try {
-                        await doc.reference.update({'status': 'Collected'});
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text('$customerName marked as Collected'),
-                              duration: const Duration(seconds: 1)),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text('Failed to update: $e'),
-                              duration: const Duration(seconds: 2)),
-                        );
-                      }
-                    },
+                    // Inside CollectorNotificationPage, replace your onPressed:
+onPressed: () async {
+  // Navigate to AddWeightPage and wait for result
+  final result = await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => AddWeightPage(
+        customerName: customerName,
+        regNo: regNo,
+        docReference: doc.reference, customerId: 'xglgYMlKZSg5nWOi0yx01dp5tQt1',
+      ),
+    ),
+  );
+
+  // Only remove from notifications if weight was saved
+  if (result == true) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+          content: Text('$customerName collected successfully'),
+          duration: const Duration(seconds: 1)),
+    );
+  }
+},
+
                   ),
                 ),
               );
