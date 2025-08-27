@@ -56,7 +56,7 @@ class MyApp extends StatelessWidget {
 
         '/customerDashboard': (context) => CustomerDashboard(),
         '/customer_profile': (context) =>  ProfilePage(),
-        '/customer_trends': (context) => TrendsPage(),
+        '/customer_trends': (context) => HarvestTrendsPage(),
         '/customer_payments': (context) => PaymentsPage(),
         '/customer_home': (context) => CustomerDashboard(),
         '/customer_collector_info': (context) => CollectorInfoPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',), 
@@ -68,7 +68,8 @@ class MyApp extends StatelessWidget {
         '/collector_history': (context) => CollectionHistoryPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',),
          '/collector_profile': (context) =>  CollectorProfile(),
          '/collector_home': (context) => CollectorDashboard(),
-        
+        '/collector_customer_list': (context) => CollectorNotificationPage(
+              collectorId: FirebaseAuth.instance.currentUser!.uid,),
 
       },
     );

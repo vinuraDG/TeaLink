@@ -1,85 +1,184 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class AddWeightPage extends StatefulWidget {
   final String customerName;
   final String regNo;
-  final DocumentReference docReference; // notify_for_collection/{docId}
+  final DocumentReference docReference;
+  final String customerId;
 
   const AddWeightPage({
     super.key,
     required this.customerName,
     required this.regNo,
-    required this.docReference, required this.customerId,
+    required this.docReference,
+    required this.customerId,
   });
-  
-  final String customerId;
 
   @override
   _AddWeightPageState createState() => _AddWeightPageState();
 }
 
 class _AddWeightPageState extends State<AddWeightPage> {
-  final TextEditingController weightController = TextEditingController();
-  final TextEditingController regController = TextEditingController();
-
-  bool isSaving = false;
+  final TextEditingController _weightController = TextEditingController();
+  bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    regController.text = widget.regNo;
+  void dispose() {
+    _weightController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Enter Weight"),
+        title: const Text(
+          "Add Weight",
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: kWhite,
+          ),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: kWhite),
+          onPressed: () => Navigator.pop(context),
+        ),
         backgroundColor: kMainColor,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Customer Reg No (Read Only)
-            TextField(
-              controller: regController,
-              readOnly: true,
-              decoration: const InputDecoration(
-                labelText: "Customer Reg No",
-                border: OutlineInputBorder(),
+            // Customer Info Card
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.green[200]!),
               ),
-            ),
-            const SizedBox(height: 16),
-
-            // Weight input
-            TextField(
-              controller: weightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: "Weight (kg)",
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Save button
-            ElevatedButton(
-              onPressed: isSaving ? null : _saveWeight,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kMainColor,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              child: isSaving
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text(
-                      "Save",
-                      style: TextStyle(fontSize: 16, color: Colors.white),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Customer: ${widget.customerName}',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Reg No: ${widget.regNo}',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Weight Input Section
+            const Text(
+              'Enter Harvest Weight',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            TextField(
+              controller: _weightController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Weight (kg)',
+                hintText: 'Enter weight in kilograms',
+                prefixIcon: const Icon(Icons.scale),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: kMainColor, width: 2),
+                ),
+              ),
+            ),
+            
+            const SizedBox(height: 30),
+            
+            // Save Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isLoading ? null : _saveWeight,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kMainColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 3,
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Save Weight',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+            
+            const Spacer(),
+            
+            // Instructions
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue[600]),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Enter the accurate weight of harvested tea leaves in kilograms.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue[700],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -88,75 +187,129 @@ class _AddWeightPageState extends State<AddWeightPage> {
   }
 
   Future<void> _saveWeight() async {
-  final weightText = weightController.text.trim();
-  final regNo = regController.text.trim();
+    if (_weightController.text.isEmpty) {
+      _showErrorSnackBar('Please enter a weight value');
+      return;
+    }
 
-  final parsed = double.tryParse(weightText);
-  if (parsed == null || parsed <= 0 || regNo.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Enter a valid weight (kg)')),
-    );
-    return;
+    final weightText = _weightController.text.trim();
+    final weight = double.tryParse(weightText);
+
+    if (weight == null || weight <= 0) {
+      _showErrorSnackBar('Please enter a valid weight greater than 0');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final batch = FirebaseFirestore.instance.batch();
+      final now = DateTime.now();
+      
+      // Update the notification document with weight and status
+      // IMPORTANT: Add customerId to make it available for trends page
+      batch.update(widget.docReference, {
+        'weight': weight,
+        'status': 'Collected',
+        'collectedAt': Timestamp.fromDate(now),
+        'customerId': widget.customerId, // This is the key addition
+        'collectedBy': FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+      });
+
+      // Calculate week ID for current date
+      final weekId = "${now.year}-W${((now.day - 1) ~/ 7) + 1}";
+
+      // Update weekly harvest for the customer
+      final weeklyDocRef = FirebaseFirestore.instance
+          .collection('customers')
+          .doc(widget.regNo)
+          .collection('weekly')
+          .doc(weekId);
+
+      // Get current weekly total
+      final weeklyDoc = await weeklyDocRef.get();
+      final currentTotal = weeklyDoc.exists ? (weeklyDoc.data()?['total'] ?? 0.0) : 0.0;
+      final newTotal = currentTotal + weight;
+
+      // Update or create weekly document
+      batch.set(weeklyDocRef, {
+        'total': newTotal,
+        'updatedAt': Timestamp.fromDate(now),
+        'customerId': widget.customerId,
+        'customerRegNo': widget.regNo,
+        'weekId': weekId,
+      }, SetOptions(merge: true));
+
+      // Add individual harvest record
+      final harvestDocRef = FirebaseFirestore.instance
+          .collection('customers')
+          .doc(widget.regNo)
+          .collection('harvests')
+          .doc();
+
+      batch.set(harvestDocRef, {
+        'weight': weight,
+        'date': now.toIso8601String().split('T')[0], // YYYY-MM-DD format
+        'timestamp': Timestamp.fromDate(now),
+        'customerId': widget.customerId,
+        'customerRegNo': widget.regNo,
+        'collectedBy': FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
+        'status': 'Collected',
+        'weekId': weekId,
+      });
+
+      // Commit the batch
+      await batch.commit();
+
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        _showSuccessSnackBar('Weight saved successfully!');
+        // Return true to indicate successful save
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('Error saving weight: $e');
+      _showErrorSnackBar('Failed to save weight. Please try again.');
+    }
   }
 
-  setState(() => isSaving = true);
-
-  try {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final now = DateTime.now();
-    final weekId = _isoWeekId(now);
-
-    final batch = FirebaseFirestore.instance.batch();
-
-    // 1) Update notify_for_collection (only adds allowed fields)
-    batch.update(widget.docReference, {
-      'status': 'Collected',
-      'weight': parsed,
-      'collectedBy': uid,
-      'collectedAt': Timestamp.now(),
-    });
-
-    // 2) Create harvest record under customers/{UID}/harvests
-    final harvestRef = FirebaseFirestore.instance
-        .collection('customers')
-        .doc(widget.customerId) // <-- UID
-        .collection('harvests')
-        .doc(); // create ID now so we can batch.set
-
-    batch.set(harvestRef, {
-      'collectorId': uid,
-      'customerRegNo': regNo,
-      'weight': parsed,
-      'date': Timestamp.now(),
-      'weekId': weekId,
-    });
-
-    await batch.commit();
-
+  void _showErrorSnackBar(String message) {
     if (!mounted) return;
-    Navigator.pop(context, true);
-  } on FirebaseException catch (e) {
-    setState(() => isSaving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed: ${e.message ?? e.code}')),
-    );
-  } catch (e) {
-    setState(() => isSaving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Failed: $e')),
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
-}
 
-/// ISO week id like "2025-W35"
-String _isoWeekId(DateTime date) {
-  // ISO: week starts Monday, week belongs to the year that contains Thursday
-  DateTime _thursdayOfWeek(DateTime d) => d.add(Duration(days: 4 - d.weekday));
-  final th = _thursdayOfWeek(date);
-  final firstTh = _thursdayOfWeek(DateTime(th.year, 1, 1));
-  final week = 1 + th.difference(firstTh).inDays ~/ 7;
-  return '${th.year}-W${week.toString().padLeft(2, '0')}';
-}
-
-
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
 }
