@@ -557,21 +557,9 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                             ],
                           ),
                           
-                          const SizedBox(height: 20),
+                      
                           
-                          // Profile Card - Full Width
-                          _buildWideCard(
-                            title: "Profile Settings",
-                            subtitle: "Manage your collector profile",
-                            icon: Icons.settings,
-                            color: kMainColor,
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              '/collector_profile',
-                            ),
-                          ),
-                          
-                          const SizedBox(height: 20), // Extra padding at bottom
+                         
                         ],
                       ),
               ),
@@ -708,8 +696,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                         Text(
                           title,
                           style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
                             color: Colors.black87,
                           ),
                           textAlign: TextAlign.center,
@@ -720,8 +708,9 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                         Text(
                           subtitle,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
                             color: Colors.grey[600],
+                            
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
@@ -739,101 +728,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
     );
   }
 
-  Widget _buildWideCard({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: color.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        color,
-                        color.withOpacity(0.8),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: color.withOpacity(0.3),
-                        spreadRadius: 1,
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    icon,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.grey[400],
-                  size: 18,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
+  
   void _showLogoutDialog() {
     showDialog(
       context: context,

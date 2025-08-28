@@ -3,6 +3,7 @@ import 'package:TeaLink/constants/colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
@@ -174,77 +175,162 @@ class _CustomerDashboardState extends State<CustomerDashboard>
     return "Good Evening";
   }
 
-  Future<void> _notifyCollector(BuildContext context) async {
-    if (user == null) return;
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
+ // New method to get current location
+  Future<Map<String, double>?> _getCurrentLocation() async {
     try {
-      final userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .get();
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showErrorSnackBar('Location services are disabled. Please enable them.');
+        return null;
+      }
 
-      final regNo = userDoc.data()?['registrationNumber'];
-      final name = userDoc.data()?['name'] ?? 'Unknown';
-
-      String? collectorId;
-      
-      try {
-        final connectionQuery = await FirebaseFirestore.instance
-            .collection('customer_collector_connections')
-            .where('customerId', isEqualTo: user!.uid)
-            .where('status', isEqualTo: 'active')
-            .limit(1)
-            .get();
-
-        if (connectionQuery.docs.isNotEmpty) {
-          collectorId = connectionQuery.docs.first.data()['collectorId'];
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showErrorSnackBar('Location permission denied.');
+          return null;
         }
-      } catch (e) {
-        print('Error getting collector connection: $e');
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        _showErrorSnackBar('Location permissions are permanently denied.');
+        return null;
       }
 
-      Navigator.pop(context); // Close loading dialog
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
 
-      if (regNo == null || regNo.isEmpty) {
-        _showErrorSnackBar('Registration number not found. Please update your profile.');
-        return;
-      }
-
-      if (collectorId == null || collectorId.isEmpty) {
-        _showErrorSnackBar('No active collector assigned. Please contact admin.');
-        return;
-      }
-
-      final now = DateTime.now();
-      final formattedDate = DateFormat('yyyy-MM-dd').format(now);
-      final formattedTime = DateFormat('HH:mm:ss').format(now);
-
-      await FirebaseFirestore.instance.collection('notify_for_collection').add({
-        'customerId': user!.uid, 
-        'name': name,
-        'regNo': regNo,
-        'collectorId': collectorId,
-        'date': formattedDate,
-        'time': formattedTime,
-        'status': 'Pending', 
-        'createdAt': Timestamp.fromDate(now),
-      });
-
-      _showSuccessDialog();
+      return {
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+      };
     } catch (e) {
-      Navigator.pop(context); // Close loading dialog if still open
-      _showErrorSnackBar('Failed to notify collector. Please try again.');
+      print('Error getting location: $e');
+      _showErrorSnackBar('Failed to get location. Using notification without location.');
+      return null;
     }
   }
+
+Future<void> _notifyCollector(BuildContext context) async {
+  if (user == null) return;
+
+  // Show loading indicator
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => const Center(
+      child: CircularProgressIndicator(),
+    ),
+  );
+
+  try {
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .get();
+
+    final regNo = userDoc.data()?['registrationNumber'];
+    final name = userDoc.data()?['name'] ?? 'Unknown';
+    
+    // Get user's stored location from the user document
+    final userLatitude = userDoc.data()?['latitude'];
+    final userLongitude = userDoc.data()?['longitude'];
+    final userLocationAddress = userDoc.data()?['location'];
+
+    String? collectorId;
+    
+    try {
+      final connectionQuery = await FirebaseFirestore.instance
+          .collection('customer_collector_connections')
+          .where('customerId', isEqualTo: user!.uid)
+          .where('status', isEqualTo: 'active')
+          .limit(1)
+          .get();
+
+      if (connectionQuery.docs.isNotEmpty) {
+        collectorId = connectionQuery.docs.first.data()['collectorId'];
+      }
+    } catch (e) {
+      print('Error getting collector connection: $e');
+    }
+
+    if (regNo == null || regNo.isEmpty) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('Registration number not found. Please update your profile.');
+      return;
+    }
+
+    if (collectorId == null || collectorId.isEmpty) {
+      Navigator.pop(context); // Close loading dialog
+      _showErrorSnackBar('No active collector assigned. Please contact admin.');
+      return;
+    }
+
+    // Get current location as fallback
+    Map<String, double>? currentLocationData = await _getCurrentLocation();
+
+    final now = DateTime.now();
+    final formattedDate = DateFormat('yyyy-MM-dd').format(now);
+    final formattedTime = DateFormat('HH:mm:ss').format(now);
+
+    // Prepare notification data
+    Map<String, dynamic> notificationData = {
+      'customerId': user!.uid, 
+      'name': name,
+      'regNo': regNo,
+      'collectorId': collectorId,
+      'date': formattedDate,
+      'time': formattedTime,
+      'status': 'Pending', 
+      'createdAt': Timestamp.fromDate(now),
+    };
+
+    // Add location field with priority: user's stored location > current location
+    Map<String, dynamic> locationField = {};
+    
+    if (userLatitude != null && userLongitude != null) {
+      // Use stored location from user document
+      locationField['latitude'] = userLatitude;
+      locationField['longitude'] = userLongitude;
+      locationField['timestamp'] = Timestamp.fromDate(now);
+      locationField['source'] = 'stored'; // Indicate this is from user profile
+      
+      // Add address if available
+      if (userLocationAddress != null && userLocationAddress.isNotEmpty) {
+        locationField['address'] = userLocationAddress;
+      }
+    } else if (currentLocationData != null) {
+      // Fall back to current location
+      locationField['latitude'] = currentLocationData['latitude'];
+      locationField['longitude'] = currentLocationData['longitude'];
+      locationField['timestamp'] = Timestamp.fromDate(now);
+      locationField['source'] = 'current'; // Indicate this is current GPS location
+    }
+    
+    // Only add location field if we have location data
+    if (locationField.isNotEmpty) {
+      notificationData['location'] = locationField;
+    }
+
+    // Save to Firestore
+    await FirebaseFirestore.instance
+        .collection('notify_for_collection')
+        .add(notificationData);
+
+    Navigator.pop(context); // Close loading dialog
+    _showSuccessDialog();
+  } catch (e) {
+    Navigator.pop(context); // Close loading dialog if still open
+    print('Error in _notifyCollector: $e');
+    _showErrorSnackBar('Failed to notify collector. Please try again.');
+  }
+}
 
   void _showSuccessDialog() {
     showDialog(
@@ -783,6 +869,7 @@ Widget _buildEnhancedDashboardCard({
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
+                      const SizedBox(height: 10),
                       // Only show icon container if icon is not null
                       if (icon != null) ...[
                         Container(
@@ -806,7 +893,7 @@ Widget _buildEnhancedDashboardCard({
                           ),
                           child: Icon(icon, color: Colors.white, size: 20),
                         ),
-                        const SizedBox(height: 8),
+                        
                       ],
                       // Content with flexible layout
                       Expanded(
@@ -814,6 +901,7 @@ Widget _buildEnhancedDashboardCard({
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: icon != null ? MainAxisAlignment.center : MainAxisAlignment.center,
                           children: [
+                            
                             // For weekly harvest card (when value is provided), show value prominently
                             if (value != null) ...[
                               Flexible(
@@ -833,7 +921,7 @@ Widget _buildEnhancedDashboardCard({
                               child: Text(
                                 title,
                                 style: TextStyle(
-                                  fontSize: icon != null ? 17 : 18, // Slightly larger when no icon
+                                  fontSize: icon != null ? 19 : 18, // Slightly larger when no icon
                                   fontWeight: FontWeight.w900,
                                   color: Colors.black87,
                                 ),
