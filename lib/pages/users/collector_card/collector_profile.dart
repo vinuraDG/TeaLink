@@ -287,7 +287,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
         elevation: 0,
         title: const Text("Profile",
             style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white)),
+                fontSize: 25, fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: kWhite, size: 20),

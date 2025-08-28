@@ -11,14 +11,23 @@ class CollectorInfoPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text("Collector Profile", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: kWhite),),
+        title: const Text(
+          "Collector Profile",
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w900,
+            color: kWhite,
+          ),
+        ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: kWhite),
+          icon: const Icon(Icons.arrow_back_ios, color: kWhite, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         backgroundColor: kMainColor,
+        elevation: 0,
       ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
@@ -27,10 +36,45 @@ class CollectorInfoPage extends StatelessWidget {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(color: kMainColor),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Loading profile...",
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 16,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
           if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text("Collector not found"));
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.person_off,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    "Collector not found",
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            );
           }
 
           var data = snapshot.data!.data() as Map<String, dynamic>;
@@ -39,110 +83,212 @@ class CollectorInfoPage extends StatelessWidget {
           String phone = data['phone'] ?? "-";
           String regNo = data['registrationNumber'] ?? "-";
           String role = data['role'] ?? "-";
-          
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
             child: Column(
               children: [
-                SizedBox(height: 30,),
-                // Profile avatar
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: kMainColor,
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : "?",
-                    style: const TextStyle(
-                      fontSize: 40,
-                      color: kWhite,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Name
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                // Role badge
+                // Header section with profile info
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.teal.shade100,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    role,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: kMainColor,
+                    color: kMainColor,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 20),
-
-                // Info card
-                Card(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
-                  ),
-                  elevation: 4,
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
                     child: Column(
                       children: [
-                         _infoTile(Icons.badge, "Registration No.", regNo),
-                        
-                        const Divider(),
-                        _infoTile(Icons.phone, "Phone", phone),
-                        const Divider(),
-                       _infoTile(Icons.email, "Email", email),
-                        
+                        // Profile avatar with shadow
+                        Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 55,
+                            backgroundColor: kWhite,
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.teal.shade100,
+                              child: Text(
+                                name.isNotEmpty ? name[0].toUpperCase() : "?",
+                                style: TextStyle(
+                                  fontSize: 42,
+                                  color: kMainColor,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Name
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.bold,
+                            color: kWhite,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        const SizedBox(height: 8),
+
+                        // Role badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: kWhite,
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 5,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            role,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: kMainColor,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 25),
 
-                // Action buttons
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    ElevatedButton.icon(
-                      style: _btnStyle(),
-                      icon: const Icon(Icons.phone, color: kWhite),
-                      label: const Text("Call",
-                          style: TextStyle(color: kWhite)),
-                      onPressed: () => _launchPhone(phone),
+                // Contact Information Card
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    ElevatedButton.icon(
-                      style: _btnStyle(),
-                      icon: const Icon(Icons.email, color: kWhite),
-                      label: const Text("Email",
-                          style: TextStyle(color: kWhite)),
-                      onPressed: () => _launchEmail(email),
+                    elevation: 8,
+                    shadowColor: Colors.black.withOpacity(0.1),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Section title
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: kMainColor,
+                                size: 24,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                "Contact Information",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+
+                          _infoTile(
+                            Icons.badge_outlined,
+                            "Registration Number",
+                            regNo,
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          _infoTile(
+                            Icons.phone_outlined,
+                            "Phone Number",
+                            phone,
+                          ),
+                          const SizedBox(height: 12),
+                          
+                          _infoTile(
+                            Icons.email_outlined,
+                            "Email Address",
+                            email,
+                          ),
+                        ],
+                      ),
                     ),
-                    ElevatedButton.icon(
-                      style: _btnStyle(),
-                      icon: const Icon(Icons.chat, color: kWhite),
-                      label: const Text("WhatsApp",
-                          style: TextStyle(color: kWhite)),
-                      onPressed: () => _launchWhatsApp(phone),
-                    ),
-                  ],
-                )
+                  ),
+                ),
+
+                const SizedBox(height: 25),
+
+                // Quick Actions Section
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Quick Actions",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Action buttons in a more accessible layout
+                      _buildActionButton(
+                        icon: Icons.phone,
+                        label: "Call Now",
+                        subtitle: phone != "-" ? phone : "No phone number",
+                        color: Colors.green,
+                        onPressed: phone != "-" ? () => _launchPhone(phone) : null,
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      _buildActionButton(
+                        icon: Icons.email,
+                        label: "Send Email",
+                        subtitle: email != "-" ? email : "No email address",
+                        color: Colors.blue,
+                        onPressed: email != "-" ? () => _launchEmail(email) : null,
+                      ),
+                      
+                      const SizedBox(height: 12),
+                      
+                      _buildActionButton(
+                        icon: Icons.chat,
+                        label: "WhatsApp Chat",
+                        subtitle: phone != "-" ? "Send a message" : "No phone number",
+                        color: Colors.teal,
+                        onPressed: phone != "-" ? () => _launchWhatsApp(phone) : null,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 30),
               ],
             ),
           );
@@ -152,25 +298,125 @@ class CollectorInfoPage extends StatelessWidget {
   }
 
   Widget _infoTile(IconData icon, String title, String value) {
-    return ListTile(
-      leading: Icon(icon, color: kMainColor),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.teal.shade50,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(
+            icon,
+            color: kMainColor,
+            size: 20,
+          ),
         ),
-      ),
-      subtitle: Text(value),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey.shade800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
-  ButtonStyle _btnStyle() {
-    return ElevatedButton.styleFrom(
-      backgroundColor: kMainColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required VoidCallback? onPressed,
+  }) {
+    bool isEnabled = onPressed != null;
+    
+    return Container(
+      width: double.infinity,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isEnabled ? color : Colors.grey.shade300,
+          foregroundColor: isEnabled ? Colors.white : Colors.grey.shade500,
+          elevation: isEnabled ? 4 : 0,
+          shadowColor: color.withOpacity(0.3),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        ),
+        onPressed: onPressed,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isEnabled 
+                    ? Colors.white.withOpacity(0.2) 
+                    : Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: 24,
+                color: isEnabled ? Colors.white : Colors.grey.shade600,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: isEnabled ? Colors.white : Colors.grey.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: isEnabled 
+                          ? Colors.white.withOpacity(0.9) 
+                          : Colors.grey.shade500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (isEnabled)
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.white.withOpacity(0.7),
+              ),
+          ],
+        ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
     );
   }
 

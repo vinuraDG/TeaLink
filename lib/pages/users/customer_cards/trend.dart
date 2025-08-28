@@ -18,13 +18,16 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
   List<FlSpot> chartData = [];
   List<HarvestRecord> harvestRecords = [];
   bool isLoading = true;
-  String selectedPeriod = 'All Time';
+  String selectedPeriod = 'Last 30 Days';
   double totalHarvest = 0.0;
   double averageWeight = 0.0;
   int totalCollections = 0;
+  double highestHarvest = 0.0;
+  int _selectedIndex = 1;
   
   AnimationController? _animationController;
   Animation<double>? _fadeAnimation;
+  Animation<double>? _scaleAnimation;
   
   @override
   void initState() {
@@ -38,10 +41,26 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     _animationController?.dispose();
     super.dispose();
   }
+
+  // Safe type conversion function
+  double _safeToDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      try {
+        return double.parse(value);
+      } catch (e) {
+        print('Error parsing weight string "$value": $e');
+        return 0.0;
+      }
+    }
+    return 0.0;
+  }
   
   void _setupAnimations() {
     _animationController = AnimationController(
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
     
@@ -50,7 +69,15 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animationController!,
-      curve: Curves.easeInOut,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    ));
+    
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: const Interval(0.2, 1.0, curve: Curves.elasticOut),
     ));
     
     _animationController!.forward();
@@ -62,44 +89,59 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     setState(() => isLoading = true);
 
     try {
+      // Query with better error handling and debugging
+      print('Fetching data for user: ${user!.uid}');
+      
       final querySnapshot = await FirebaseFirestore.instance
           .collection('notify_for_collection')
           .where('customerId', isEqualTo: user!.uid)
           .where('status', isEqualTo: 'Collected')
-          .orderBy('collectedAt', descending: false)
           .get();
 
+      print('Found ${querySnapshot.docs.length} collected records');
+
       final records = <HarvestRecord>[];
-      final spots = <FlSpot>[];
       double total = 0.0;
+      double highest = 0.0;
       
-      for (int i = 0; i < querySnapshot.docs.length; i++) {
-        final doc = querySnapshot.docs[i];
+      for (var doc in querySnapshot.docs) {
         final data = doc.data();
+        print('Document data: $data'); // Debug print
         
-        final weight = (data['weight'] ?? 0.0).toDouble();
-        final collectedAt = (data['collectedAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+        // Use safe conversion instead of direct toDouble()
+        final weight = _safeToDouble(data['weight']);
+        final collectedAt = (data['collectedAt'] as Timestamp?)?.toDate() ?? 
+                          (data['createdAt'] as Timestamp?)?.toDate() ?? 
+                          DateTime.now();
         
-        final record = HarvestRecord(
-          weight: weight,
-          date: collectedAt,
-          customerName: data['name'] ?? 'Unknown',
-          regNo: data['regNo'] ?? 'N/A',
-        );
-        
-        records.add(record);
-        spots.add(FlSpot(i.toDouble(), weight));
-        total += weight;
+        if (weight > 0) { // Only add records with valid weight
+          final record = HarvestRecord(
+            weight: weight,
+            date: collectedAt,
+            customerName: data['name'] ?? 'Unknown',
+            regNo: data['regNo'] ?? 'N/A',
+            collectorId: data['collectorId'] ?? 'Unknown',
+          );
+          
+          records.add(record);
+          total += weight;
+          if (weight > highest) highest = weight;
+        }
       }
+
+      // Sort records by date
+      records.sort((a, b) => a.date.compareTo(b.date));
 
       setState(() {
         harvestRecords = records;
-        chartData = spots;
         totalHarvest = total;
         totalCollections = records.length;
         averageWeight = records.isNotEmpty ? total / records.length : 0.0;
+        highestHarvest = highest;
         isLoading = false;
       });
+      
+      print('Updated state: ${records.length} records, total: $total kg');
     } catch (e) {
       print('Error fetching harvest data: $e');
       setState(() => isLoading = false);
@@ -119,6 +161,9 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
         break;
       case 'Last 3 Months':
         cutoffDate = now.subtract(const Duration(days: 90));
+        break;
+      case 'Last 6 Months':
+        cutoffDate = now.subtract(const Duration(days: 180));
         break;
       default:
         return harvestRecords;
@@ -142,17 +187,17 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(
-          'Harvest Trends',
+          'My Harvest Trends',
           style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
             color: Colors.white,
           ),
         ),
         centerTitle: true,
         backgroundColor: kMainColor,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -161,6 +206,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
             onPressed: _fetchHarvestData,
           ),
         ],
+        elevation: 0,
         flexibleSpace: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -172,61 +218,173 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
         ),
       ),
       body: isLoading
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading harvest data...'),
-                ],
-              ),
-            )
+          ? _buildLoadingState()
           : harvestRecords.isEmpty
               ? _buildEmptyState()
               : FadeTransition(
                   opacity: _fadeAnimation!,
                   child: _buildContent(),
                 ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 15,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+          child: BottomNavigationBar(
+            backgroundColor: Colors.transparent,
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: kMainColor,
+            unselectedItemColor: Colors.grey,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            type: BottomNavigationBarType.fixed,
+            elevation: 0,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_rounded, size: 24),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.trending_up, size: 24),
+                label: 'Trends',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.payments, size: 24),
+                label: 'Payments',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person, size: 24),
+                label: 'Profile',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(kMainColor),
+            strokeWidth: 3,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            'Loading your harvest data...',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Please wait while we gather your records',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              shape: BoxShape.circle,
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.teal.shade200,
+                  width: 2,
+                ),
+              ),
+              child: Icon(
+                Icons.trending_up,
+                size: 60,
+                color: kMainColor,
+              ),
             ),
-            child: Icon(
-              Icons.trending_up,
-              size: 60,
-              color: Colors.grey[400],
+            const SizedBox(height: 32),
+            Text(
+              'No Harvest Data Yet',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[800],
+              ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'No Harvest Data',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
+            const SizedBox(height: 12),
+            Text(
+              'Your harvest trends will appear here once tea leaves are collected and weighed.',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Start collecting harvests to see trends',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue.shade600, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Contact your collector for harvest collection',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.blue.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 2,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -238,211 +396,331 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Statistics Cards
+          // Enhanced Statistics Cards
           Container(
-            margin: const EdgeInsets.all(16),
-            child: Row(
+            margin: const EdgeInsets.all(20),
+            child: Column(
               children: [
-                Expanded(child: _buildStatCard('Total Harvest', '${totalHarvest.toStringAsFixed(1)} kg', Icons.scale, Colors.green)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildStatCard('Collections', '$totalCollections', Icons.collections, Colors.blue)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildStatCard('Average', '${averageWeight.toStringAsFixed(1)} kg', Icons.analytics, Colors.orange)),
-              ],
-            ),
-          ),
-
-          // Period Filter
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              children: [
-                const Text(
-                  'Period: ',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                Row(
+                  children: [
+                    Expanded(child: _buildStatCard(
+                      'Total Harvest', 
+                      '${totalHarvest.toStringAsFixed(1)} kg', 
+                      Icons.eco, 
+                      Colors.green,
+                      '${totalCollections} collections'
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildStatCard(
+                      'Average Weight', 
+                      '${averageWeight.toStringAsFixed(1)} kg', 
+                      Icons.analytics_outlined, 
+                      Colors.blue,
+                      'per collection'
+                    )),
+                  ],
                 ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: ['All Time', 'Last 7 Days', 'Last 30 Days', 'Last 3 Months']
-                          .map((period) => Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilterChip(
-                                  label: Text(period),
-                                  selected: selectedPeriod == period,
-                                  onSelected: (selected) {
-                                    if (selected) {
-                                      setState(() => selectedPeriod = period);
-                                    }
-                                  },
-                                  selectedColor: kMainColor.withOpacity(0.2),
-                                  checkmarkColor: kMainColor,
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                  ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildStatCard(
+                      'Highest Harvest', 
+                      '${highestHarvest.toStringAsFixed(1)} kg', 
+                      Icons.trending_up, 
+                      Colors.orange,
+                      'single collection'
+                    )),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildStatCard(
+                      'Collections', 
+                      '$totalCollections', 
+                      Icons.calendar_month, 
+                      Colors.purple,
+                      'total records'
+                    )),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // Chart
+          // Enhanced Period Filter
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
                   color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 2,
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+                  spreadRadius: 1,
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
                 ),
               ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Harvest Trends',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
+                Row(
+                  children: [
+                    Icon(Icons.filter_list, color: kMainColor, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Time Period',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: ['Last 7 Days', 'Last 30 Days', 'Last 3 Months', 'Last 6 Months', 'All Time']
+                        .map((period) => Container(
+                              margin: const EdgeInsets.only(right: 8),
+                              child: FilterChip(
+                                label: Text(
+                                  period,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                    color: selectedPeriod == period ? Colors.white : Colors.grey[700],
+                                  ),
+                                ),
+                                selected: selectedPeriod == period,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    setState(() => selectedPeriod = period);
+                                  }
+                                },
+                                selectedColor: kMainColor,
+                                backgroundColor: Colors.grey[100],
+                                checkmarkColor: Colors.white,
+                                elevation: selectedPeriod == period ? 2 : 0,
+                              ),
+                            ))
+                        .toList(),
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Weight (kg) over time',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
+              ],
+            ),
+          ),
+
+          // Enhanced Chart
+          ScaleTransition(
+            scale: _scaleAnimation!,
+            child: Container(
+              margin: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.15),
+                    spreadRadius: 2,
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
                   ),
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 300,
-                  child: filteredChartData.isEmpty
-                      ? Center(
-                          child: Text(
-                            'No data for selected period',
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: kMainColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.show_chart,
+                          color: kMainColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Harvest Trends',
                             style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[500],
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
                             ),
                           ),
-                        )
-                      : LineChart(
-                          LineChartData(
-                            gridData: FlGridData(
-                              show: true,
-                              drawVerticalLine: false,
-                              horizontalInterval: _calculateInterval(filteredChartData),
-                              getDrawingHorizontalLine: (value) {
-                                return FlLine(
-                                  color: Colors.grey[300]!,
-                                  strokeWidth: 0.5,
-                                );
-                              },
+                          Text(
+                            'Weight (kg) over time - $selectedPeriod',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
                             ),
-                            titlesData: FlTitlesData(
-                              bottomTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  interval: _calculateBottomInterval(filteredChartData.length),
-                                  getTitlesWidget: (value, meta) {
-                                    if (value.toInt() >= 0 && value.toInt() < filteredRecords.length) {
-                                      final record = filteredRecords[value.toInt()];
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    height: 320,
+                    child: filteredChartData.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.bar_chart,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No data for selected period',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey[500],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Try selecting a different time period',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[400],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : LineChart(
+                            LineChartData(
+                              gridData: FlGridData(
+                                show: true,
+                                drawVerticalLine: false,
+                                horizontalInterval: _calculateInterval(filteredChartData),
+                                getDrawingHorizontalLine: (value) {
+                                  return FlLine(
+                                    color: Colors.grey[200]!,
+                                    strokeWidth: 1,
+                                  );
+                                },
+                              ),
+                              titlesData: FlTitlesData(
+                                bottomTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: _calculateBottomInterval(filteredChartData.length),
+                                    getTitlesWidget: (value, meta) {
+                                      if (value.toInt() >= 0 && value.toInt() < filteredRecords.length) {
+                                        final record = filteredRecords[value.toInt()];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(top: 12),
+                                          child: Text(
+                                            DateFormat('MM/dd').format(record.date),
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                      return const Text('');
+                                    },
+                                  ),
+                                ),
+                                leftTitles: AxisTitles(
+                                  sideTitles: SideTitles(
+                                    showTitles: true,
+                                    interval: _calculateInterval(filteredChartData),
+                                    reservedSize: 45,
+                                    getTitlesWidget: (value, meta) {
                                       return Padding(
-                                        padding: const EdgeInsets.only(top: 8),
+                                        padding: const EdgeInsets.only(right: 8),
                                         child: Text(
-                                          DateFormat('MM/dd').format(record.date),
+                                          '${value.toInt()}kg',
                                           style: TextStyle(
                                             color: Colors.grey[600],
                                             fontSize: 12,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       );
-                                    }
-                                    return const Text('');
-                                  },
-                                ),
-                              ),
-                              leftTitles: AxisTitles(
-                                sideTitles: SideTitles(
-                                  showTitles: true,
-                                  interval: _calculateInterval(filteredChartData),
-                                  getTitlesWidget: (value, meta) {
-                                    return Text(
-                                      '${value.toInt()}kg',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 12,
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            ),
-                            borderData: FlBorderData(
-                              show: true,
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey[300]!),
-                                left: BorderSide(color: Colors.grey[300]!),
-                              ),
-                            ),
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: filteredChartData,
-                                isCurved: true,
-                                gradient: LinearGradient(
-                                  colors: [kMainColor, kMainColor.withOpacity(0.8)],
-                                ),
-                                barWidth: 3,
-                                isStrokeCapRound: true,
-                                dotData: FlDotData(
-                                  show: true,
-                                  getDotPainter: (spot, percent, barData, index) {
-                                    return FlDotCirclePainter(
-                                      radius: 4,
-                                      color: kMainColor,
-                                      strokeWidth: 2,
-                                      strokeColor: Colors.white,
-                                    );
-                                  },
-                                ),
-                                belowBarData: BarAreaData(
-                                  show: true,
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      kMainColor.withOpacity(0.3),
-                                      kMainColor.withOpacity(0.1),
-                                    ],
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
+                                    },
                                   ),
                                 ),
+                                topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                               ),
-                            ],
-                            minY: 0,
-                            maxY: _calculateMaxY(filteredChartData),
+                              borderData: FlBorderData(
+                                show: true,
+                                border: Border(
+                                  bottom: BorderSide(color: Colors.grey[300]!),
+                                  left: BorderSide(color: Colors.grey[300]!),
+                                ),
+                              ),
+                              lineBarsData: [
+                                LineChartBarData(
+                                  spots: filteredChartData,
+                                  isCurved: true,
+                                  curveSmoothness: 0.35,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      kMainColor,
+                                      kMainColor.withOpacity(0.8),
+                                    ],
+                                  ),
+                                  barWidth: 4,
+                                  isStrokeCapRound: true,
+                                  dotData: FlDotData(
+                                    show: true,
+                                    getDotPainter: (spot, percent, barData, index) {
+                                      return FlDotCirclePainter(
+                                        radius: 6,
+                                        color: Colors.white,
+                                        strokeWidth: 3,
+                                        strokeColor: kMainColor,
+                                      );
+                                    },
+                                  ),
+                                  belowBarData: BarAreaData(
+                                    show: true,
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        kMainColor.withOpacity(0.3),
+                                        kMainColor.withOpacity(0.1),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              minY: 0,
+                              maxY: _calculateMaxY(filteredChartData),
+                            ),
                           ),
-                        ),
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
 
-          // Recent Collections List
+          // Enhanced Recent Collections
           Container(
-            margin: const EdgeInsets.all(16),
-            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
@@ -458,66 +736,110 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Recent Collections',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[800],
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.history,
+                        color: Colors.blue[600],
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Recent Collections',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[800],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                ...filteredRecords.reversed
-                    .take(5)
-                    .map((record) => _buildCollectionItem(record))
-                    .toList(),
+                const SizedBox(height: 20),
+                if (filteredRecords.isEmpty)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        'No recent collections',
+                        style: TextStyle(
+                          fontSize: 16,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ...filteredRecords.reversed
+                      .take(5)
+                      .map((record) => _buildCollectionItem(record))
+                      .toList(),
               ],
             ),
           ),
+          
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, String subtitle) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: color.withOpacity(0.1),
             spreadRadius: 1,
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: Colors.grey[800],
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             title,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
               color: Colors.grey[600],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11,
+              color: Colors.grey[500],
             ),
             textAlign: TextAlign.center,
           ),
@@ -529,38 +851,59 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
   Widget _buildCollectionItem(HarvestRecord record) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[200]!),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: kMainColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(Icons.scale, color: kMainColor, size: 20),
+            child: Icon(Icons.eco, color: kMainColor, size: 22),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${record.weight.toStringAsFixed(1)} kg',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '${record.weight.toStringAsFixed(1)} kg',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'Collected',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.green[700],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  DateFormat('MMM dd, yyyy - HH:mm').format(record.date),
+                  DateFormat('EEEE, MMM dd, yyyy - h:mm a').format(record.date),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 13,
                     color: Colors.grey[600],
                   ),
                 ),
@@ -593,6 +936,25 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     final maxValue = data.map((spot) => spot.y).reduce((a, b) => a > b ? a : b);
     return (maxValue * 1.2).ceilToDouble();
   }
+
+ void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/customer_home');
+        break;
+      case 1:
+        Navigator.pushNamed(context, '/customer_trends');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/customer_payments');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/customer_profile');
+        break;
+    }
+  }
 }
 
 class HarvestRecord {
@@ -600,11 +962,13 @@ class HarvestRecord {
   final DateTime date;
   final String customerName;
   final String regNo;
+  final String collectorId;
 
   HarvestRecord({
     required this.weight,
     required this.date,
     required this.customerName,
     required this.regNo,
+    required this.collectorId,
   });
 }

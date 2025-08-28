@@ -1,8 +1,5 @@
 import 'package:TeaLink/constants/colors.dart';
-import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
-import 'package:TeaLink/widgets/dashboard_card.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:TeaLink/pages/login_page.dart';

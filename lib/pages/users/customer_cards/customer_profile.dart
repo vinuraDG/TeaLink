@@ -122,7 +122,9 @@ class _ProfilePageState extends State<ProfilePage> {
           await _firestore.collection('users').doc(user.uid).get();
 
       if (!doc.exists) {
-        String regNum = const Uuid().v4();
+        // Generate a shorter, more user-friendly registration number
+        String regNum = 'TEA${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+        
         await _firestore.collection('users').doc(user.uid).set({
           'name': user.displayName ?? '',
           'email': user.email ?? '',
@@ -132,6 +134,7 @@ class _ProfilePageState extends State<ProfilePage> {
           'longitude': null,
           'profileImage': '',
           'registrationNumber': regNum,
+          'createdAt': FieldValue.serverTimestamp(),
         });
 
         setState(() {
@@ -141,21 +144,45 @@ class _ProfilePageState extends State<ProfilePage> {
           profileImageUrl = '';
           address = '';
         });
+        
+        debugPrint("Created new user with registration number: $regNum");
       } else {
+        // Get data from existing document
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
         setState(() {
-          nameController.text = doc['name'] ?? '';
-          phoneController.text = doc['phone'] ?? '';
-          registrationNumber = doc['registrationNumber'] ?? '';
-          profileImageUrl = doc['profileImage'] ?? '';
-          address = doc['location'] ?? '';
-          latitude = doc['latitude'];
-          longitude = doc['longitude'];
+          nameController.text = data['name'] ?? '';
+          phoneController.text = data['phone'] ?? '';
+          registrationNumber = data['registrationNumber'] ?? '';
+          profileImageUrl = data['profileImage'] ?? '';
+          address = data['location'] ?? '';
+          latitude = data['latitude'];
+          longitude = data['longitude'];
         });
+        
+        // If registration number is missing, create one
+        if (registrationNumber == null || registrationNumber!.isEmpty) {
+          String regNum = 'TEA${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+          
+          await _firestore.collection('users').doc(user.uid).update({
+            'registrationNumber': regNum,
+          });
+          
+          setState(() {
+            registrationNumber = regNum;
+          });
+          
+          debugPrint("Updated user with new registration number: $regNum");
+        }
+        
+        debugPrint("Loaded registration number: $registrationNumber");
       }
     } catch (e) {
       debugPrint("Error loading profile: $e");
+      // Generate fallback registration number
+      String fallbackRegNum = 'TEA${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
       setState(() {
-        registrationNumber = '';
+        registrationNumber = fallbackRegNum;
       });
     } finally {
       setState(() => isLoading = false);
@@ -207,6 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
         'location': address ?? '',
         'latitude': latitude,
         'longitude': longitude,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -362,6 +390,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -376,7 +405,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             flexibleSpace: FlexibleSpaceBar(
              
-              background: Container(
+             background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
@@ -429,7 +458,13 @@ class _ProfilePageState extends State<ProfilePage> {
                       Icons.location_on, 
                       _pickLocation
                     ),
-                    _buildReadOnlyField("Registration ID", registrationNumber ?? '', Icons.qr_code),
+                    _buildReadOnlyField(
+                      "Registration ID", 
+                      registrationNumber?.isNotEmpty == true 
+                        ? registrationNumber! 
+                        : "Generating...", 
+                      Icons.qr_code
+                    ),
                   ]),
                   
                   const SizedBox(height: 16),
@@ -695,12 +730,25 @@ class _ProfilePageState extends State<ProfilePage> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey[200]!),
                 ),
-                child: QrImageView(
-                  data: registrationNumber ?? '',
-                  version: QrVersions.auto,
-                  size: 200.0,
-                  backgroundColor: Colors.white,
-                ),
+                child: registrationNumber?.isNotEmpty == true
+                  ? QrImageView(
+                      data: registrationNumber!,
+                      version: QrVersions.auto,
+                      size: 200.0,
+                      backgroundColor: Colors.white,
+                    )
+                  : const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(40),
+                        child: Text(
+                          "Generating QR Code...",
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ),
               ),
             ),
           ],

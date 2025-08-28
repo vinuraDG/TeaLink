@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:TeaLink/constants/colors.dart';
-import 'package:TeaLink/widgets/dashboard_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
