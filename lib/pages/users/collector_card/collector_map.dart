@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -23,6 +24,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   NotificationData? _selectedNotification;
   bool _isLoading = true;
   String? _errorMessage;
+  int _selectedIndex = 1;
   
   // Animation controllers
   late AnimationController _fabAnimationController;
@@ -32,7 +34,6 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   late Animation<Offset> _cardSlideAnimation;
   
   // Map settings
-  bool _isDarkMode = false;
   String _currentTileLayer = 'openstreetmap';
   
   // Default location (Sri Lanka center)
@@ -129,11 +130,11 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     }
 
     try {
-      // Stream notifications for this collector
+      // Stream notifications for this collector - including all statuses to show weight info
       _notificationStream = FirebaseFirestore.instance
           .collection('notify_for_collection')
           .where('collectorId', isEqualTo: currentUser.uid)
-          .where('status', isEqualTo: 'Pending')
+          .orderBy('createdAt', descending: true)
           .snapshots()
           .listen(
         (snapshot) {
@@ -197,8 +198,8 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   List<Marker> _buildMarkers() {
     return _notifications.where((n) => n.hasLocation).map((notification) {
       return Marker(
-        width: 40.0,
-        height: 40.0,
+        width: 80.0,
+        height: 80.0,
         point: LatLng(notification.latitude!, notification.longitude!),
         child: GestureDetector(
           onTap: () => _selectNotification(notification),
@@ -206,36 +207,76 @@ class _CollectorMapPageState extends State<CollectorMapPage>
             alignment: Alignment.center,
             children: [
               // Shadow
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.black.withOpacity(0.2),
+              Positioned(
+                top: 2,
+                left: 2,
+                child: Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.black.withOpacity(0.2),
+                  ),
                 ),
-                transform: Matrix4.translationValues(2, 2, 0),
               ),
-              // Main marker
+              // Main marker background
               Container(
-                width: 32,
-                height: 32,
+                width: 60,
+                height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: notification.status == 'Pending' ? Colors.orange : Colors.green,
-                  border: Border.all(color: Colors.white, width: 2),
+                  gradient: LinearGradient(
+                    colors: _getMarkerColors(notification),
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(color: Colors.white, width: 3),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.3),
                       spreadRadius: 1,
-                      blurRadius: 3,
-                      offset: const Offset(0, 1),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
-                child: Icon(
-                  notification.status == 'Pending' ? Icons.pending : Icons.check_circle,
-                  color: Colors.white,
-                  size: 18,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _getMarkerIcon(notification),
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                    if (notification.weight != null)
+                      Text(
+                        '${notification.weight}kg',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 8,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              // Status indicator
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: _getStatusColor(notification),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: Icon(
+                    _getStatusIcon(notification),
+                    color: Colors.white,
+                    size: 10,
+                  ),
                 ),
               ),
               // Pulse animation for pending notifications
@@ -246,6 +287,46 @@ class _CollectorMapPageState extends State<CollectorMapPage>
         ),
       );
     }).toList();
+  }
+
+  List<Color> _getMarkerColors(NotificationData notification) {
+    switch (notification.status) {
+      case 'Pending':
+        return [Colors.orange, Colors.orange[700]!];
+      case 'Collected':
+        return [Colors.green, Colors.green[700]!];
+      default:
+        return [Colors.grey, Colors.grey[700]!];
+    }
+  }
+
+  IconData _getMarkerIcon(NotificationData notification) {
+    if (notification.weight != null) {
+      return Icons.scale;
+    }
+    return notification.status == 'Pending' ? Icons.pending : Icons.check_circle;
+  }
+
+  Color _getStatusColor(NotificationData notification) {
+    switch (notification.status) {
+      case 'Pending':
+        return Colors.red;
+      case 'Collected':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(NotificationData notification) {
+    switch (notification.status) {
+      case 'Pending':
+        return Icons.hourglass_empty;
+      case 'Collected':
+        return Icons.check;
+      default:
+        return Icons.help;
+    }
   }
 
   void _fitMarkersInView() {
@@ -284,7 +365,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
         _mapController.fitCamera(
           CameraFit.bounds(
             bounds: bounds,
-            padding: const EdgeInsets.all(50),
+            padding: const EdgeInsets.all(80),
           ),
         );
       }
@@ -416,6 +497,8 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   _buildDetailRow(Icons.access_time, 'Time', notification.time),
                   _buildDetailRow(Icons.calendar_today, 'Date', notification.date),
                   _buildDetailRow(Icons.schedule, 'Requested', notification.timeAgo),
+                  if (notification.weight != null)
+                    _buildDetailRow(Icons.scale, 'Weight', '${notification.weight} ${notification.weightUnit ?? 'kg'}'),
                   if (notification.address?.isNotEmpty == true)
                     _buildDetailRow(Icons.location_on, 'Address', notification.address!),
                   _buildDetailRow(
@@ -433,39 +516,74 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   const Spacer(),
                   
                   // Action buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => _markAsCollected(notification),
-                          icon: const Icon(Icons.check_circle),
-                          label: const Text('Mark as Collected'),
+                  if (notification.status == 'Pending')
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _markAsCollected(notification),
+                            icon: const Icon(Icons.scale),
+                            label: const Text('Add Weight'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () => _openInMaps(notification),
+                          icon: const Icon(Icons.navigation),
+                          label: const Text('Navigate'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      ElevatedButton.icon(
-                        onPressed: () => _openInMaps(notification),
-                        icon: const Icon(Icons.navigation),
-                        label: const Text('Navigate'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _updateWeight(notification),
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Update Weight'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () => _removeWeight(notification),
+                          icon: const Icon(Icons.delete),
+                          label: const Text('Remove'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -505,203 +623,124 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   }
 
   Future<void> _markAsCollected(NotificationData notification) async {
-    // First check if weight is already added
     try {
-      final doc = await FirebaseFirestore.instance
+      // Create document reference for the notification
+      final docRef = FirebaseFirestore.instance
           .collection('notify_for_collection')
-          .doc(notification.id)
-          .get();
-      
-      if (doc.exists) {
-        final data = doc.data() as Map<String, dynamic>;
-        final existingWeight = data['weight'];
+          .doc(notification.id);
+
+      // Navigate to AddWeightPage
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddWeightPage(
+            customerName: notification.name,
+            regNo: notification.regNo,
+            docReference: docRef,
+            customerId: notification.customerId,
+          ),
+        ),
+      );
+
+      // If weight was successfully saved (result == true), show success message
+      if (result == true && mounted) {
+        _showSuccessSnackBar('Collection completed successfully!');
         
-        if (existingWeight != null) {
-          // Weight exists, show option to remove or update
-          _showWeightExistsDialog(notification, existingWeight);
-          return;
+        // Close the selected notification card if it's open
+        if (_selectedNotification?.id == notification.id) {
+          setState(() => _selectedNotification = null);
+          _cardAnimationController.reset();
         }
+        Navigator.pop(context);
       }
     } catch (e) {
-      _showErrorSnackBar('Error checking existing data: ${e.toString()}');
-      return;
-    }
-    
-    // No weight exists, show weight input dialog
-    _showWeightInputDialog(notification);
-  }
-
-  void _showWeightExistsDialog(NotificationData notification, dynamic existingWeight) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text('Weight Already Added'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Current weight: ${existingWeight.toString()} kg'),
-              const SizedBox(height: 16),
-              const Text('What would you like to do?'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _showWeightInputDialog(notification, existingWeight: existingWeight);
-              },
-              child: const Text('Update Weight'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _removeWeightAndRevert(notification);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Remove Weight'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showWeightInputDialog(NotificationData notification, {dynamic existingWeight}) {
-    final TextEditingController weightController = TextEditingController();
-    if (existingWeight != null) {
-      weightController.text = existingWeight.toString();
-    }
-    
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: Text(existingWeight != null ? 'Update Weight' : 'Add Weight'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Customer: ${notification.name}'),
-              Text('Reg No: ${notification.regNo}'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: weightController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: InputDecoration(
-                  labelText: 'Weight (kg)',
-                  hintText: 'Enter weight in kg',
-                  prefixIcon: const Icon(Icons.scale),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide(color: kMainColor, width: 2),
-                  ),
-                ),
-                autofocus: true,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Weight is required to mark as collected',
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final weightText = weightController.text.trim();
-                if (weightText.isEmpty) {
-                  _showErrorSnackBar('Please enter a weight value');
-                  return;
-                }
-                
-                final weight = double.tryParse(weightText);
-                if (weight == null || weight <= 0) {
-                  _showErrorSnackBar('Please enter a valid weight value');
-                  return;
-                }
-                
-                Navigator.pop(context);
-                _saveCollectionWithWeight(notification, weight);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kMainColor,
-                foregroundColor: Colors.white,
-              ),
-              child: Text(existingWeight != null ? 'Update' : 'Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _saveCollectionWithWeight(NotificationData notification, double weight) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('notify_for_collection')
-          .doc(notification.id)
-          .update({
-        'status': 'Collected',
-        'collectedAt': Timestamp.now(),
-        'collectedBy': FirebaseAuth.instance.currentUser?.uid,
-        'weight': weight,
-        'weightUnit': 'kg',
-      });
-      
       if (mounted) {
-        if (Navigator.canPop(context)) {
+        _showErrorSnackBar('Error opening weight page: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _updateWeight(NotificationData notification) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('notify_for_collection')
+          .doc(notification.id);
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddWeightPage(
+            customerName: notification.name,
+            regNo: notification.regNo,
+            docReference: docRef,
+            customerId: notification.customerId,
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        _showSuccessSnackBar('Weight updated successfully!');
+        
+        if (_selectedNotification?.id == notification.id) {
+          setState(() => _selectedNotification = null);
+          _cardAnimationController.reset();
+        }
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Error updating weight: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _removeWeight(NotificationData notification) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Weight'),
+        content: Text('Are you sure you want to remove the weight for ${notification.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('notify_for_collection')
+            .doc(notification.id)
+            .update({
+          'status': 'Pending',
+          'collectedAt': FieldValue.delete(),
+          'collectedBy': FieldValue.delete(),
+          'weight': FieldValue.delete(),
+          'weightUnit': FieldValue.delete(),
+        });
+        
+        if (mounted) {
+          _showSuccessSnackBar('Weight removed successfully');
+          
+          if (_selectedNotification?.id == notification.id) {
+            setState(() => _selectedNotification = null);
+            _cardAnimationController.reset();
+          }
           Navigator.pop(context);
         }
-        _showSuccessSnackBar('Collection marked with weight: ${weight}kg');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Failed to save collection: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _removeWeightAndRevert(NotificationData notification) async {
-    try {
-      await FirebaseFirestore.instance
-          .collection('notify_for_collection')
-          .doc(notification.id)
-          .update({
-        'status': 'Pending',
-        'collectedAt': FieldValue.delete(),
-        'collectedBy': FieldValue.delete(),
-        'weight': FieldValue.delete(),
-        'weightUnit': FieldValue.delete(),
-      });
-      
-      if (mounted) {
-        _showSuccessSnackBar('Weight removed and status reverted to pending');
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Failed to remove weight: ${e.toString()}');
+      } catch (e) {
+        if (mounted) {
+          _showErrorSnackBar('Failed to remove weight: ${e.toString()}');
+        }
       }
     }
   }
@@ -716,20 +755,62 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     return AnimatedBuilder(
       animation: _pulseAnimationController,
       builder: (context, child) {
-        final scale = 1.0 + (0.5 * sin(_pulseAnimationController.value * 2 * pi));
+        final scale = 1.0 + (0.3 * sin(_pulseAnimationController.value * 2 * pi));
         return Transform.scale(
           scale: scale,
           child: Container(
-            width: 32,
-            height: 32,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.orange.withOpacity(0.3 * (2.0 - scale)),
+              color: Colors.orange.withOpacity(0.2 * (2.0 - scale)),
             ),
           ),
         );
       },
     );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _calculateTotalWeight() {
+    double total = 0.0;
+    for (var notification in _notifications) {
+      if (notification.weight != null) {
+        total += notification.weight!;
+      }
+    }
+    return total.toStringAsFixed(1);
   }
 
   void _changeTileLayer() {
@@ -831,6 +912,10 @@ class _CollectorMapPageState extends State<CollectorMapPage>
             color: Colors.white,
           ),
         ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
         backgroundColor: kMainColor,
         elevation: 0,
         actions: [
@@ -903,7 +988,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                       ],
                     ),
                     
-                    // Statistics Card
+                    // Enhanced Statistics Card with Weight Info
                     Positioned(
                       top: 16,
                       left: 16,
@@ -915,20 +1000,55 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          child: Column(
                             children: [
-                              _buildStatItem(
-                                'Total Requests',
-                                _notifications.length.toString(),
-                                Icons.notifications,
-                                kMainColor,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  _buildStatItem(
+                                    'Total',
+                                    _notifications.length.toString(),
+                                    Icons.location_on,
+                                    kMainColor,
+                                  ),
+                                  _buildStatItem(
+                                    'Pending',
+                                    _notifications.where((n) => n.status == 'Pending').length.toString(),
+                                    Icons.pending,
+                                    Colors.orange,
+                                  ),
+                                  _buildStatItem(
+                                    'Collected',
+                                    _notifications.where((n) => n.status == 'Collected').length.toString(),
+                                    Icons.check_circle,
+                                    Colors.green,
+                                  ),
+                                ],
                               ),
-                              _buildStatItem(
-                                'Pending',
-                                _notifications.where((n) => n.status == 'Pending').length.toString(),
-                                Icons.pending,
-                                Colors.orange,
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [Colors.blue[50]!, Colors.blue[100]!],
+                                  ),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.scale, color: Colors.blue[700], size: 16),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Total Weight: ${_calculateTotalWeight()} kg',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.blue[700],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -936,7 +1056,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                       ),
                     ),
                     
-                    // Selected notification card
+                    // Selected Notification Card
                     if (_selectedNotification != null)
                       Positioned(
                         bottom: 16,
@@ -944,265 +1064,214 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                         right: 16,
                         child: SlideTransition(
                           position: _cardSlideAnimation,
-                          child: _buildSelectedNotificationCard(),
+                          child: Card(
+                            elevation: 12,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            colors: _getMarkerColors(_selectedNotification!),
+                                          ),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Icon(
+                                          _getMarkerIcon(_selectedNotification!),
+                                          color: Colors.white,
+                                          size: 24,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _selectedNotification!.name,
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Reg: ${_selectedNotification!.regNo}',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            if (_selectedNotification!.weight != null)
+                                              Text(
+                                                'Weight: ${_selectedNotification!.weight} ${_selectedNotification!.weightUnit ?? 'kg'}',
+                                                style: TextStyle(
+                                                  color: Colors.blue[700],
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        onPressed: () {
+                                          setState(() => _selectedNotification = null);
+                                          _cardAnimationController.reset();
+                                        },
+                                        icon: const Icon(Icons.close),
+                                        color: Colors.grey[600],
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton(
+                                          onPressed: () => _showNotificationDetails(_selectedNotification!),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: kMainColor,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: const Text('View Details'),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      if (_selectedNotification!.status == 'Pending')
+                                        ElevatedButton(
+                                          onPressed: () => _markAsCollected(_selectedNotification!),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          child: const Text('Add Weight'),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                   ],
                 ),
       
-      // Floating action buttons
-      floatingActionButton: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          ScaleTransition(
-            scale: _fabScaleAnimation,
-            child: FloatingActionButton(
-              heroTag: 'center_map',
-              onPressed: _fitMarkersInView,
-              backgroundColor: Colors.white,
-              foregroundColor: kMainColor,
-              child: const Icon(Icons.center_focus_strong),
-            ),
-          ),
-          const SizedBox(height: 12),
-          ScaleTransition(
-            scale: _fabScaleAnimation,
-            child: FloatingActionButton(
-              heroTag: 'my_location',
-              onPressed: _goToCurrentLocation,
-              backgroundColor: kMainColor,
-              foregroundColor: Colors.white,
-              child: const Icon(Icons.my_location),
-            ),
-          ),
-        ],
-      ),
+      // Floating Action Button for centering map
+      floatingActionButton: _notifications.isNotEmpty
+          ? ScaleTransition(
+              scale: _fabScaleAnimation,
+              child: FloatingActionButton(
+                onPressed: _fitMarkersInView,
+                backgroundColor: kMainColor,
+                foregroundColor: Colors.white,
+                child: const Icon(Icons.my_location),
+              ),
+            )
+          : null,
     );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSelectedNotificationCard() {
-    final notification = _selectedNotification!;
-    return Card(
-      elevation: 12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notification.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'Reg: ${notification.regNo}',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () {
-                    setState(() => _selectedNotification = null);
-                    _cardAnimationController.reset();
-                  },
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  '${notification.time} • ${notification.timeAgo}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _showNotificationDetails(notification),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: kMainColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: const Text('View Details'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () => _markAsCollected(notification),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Collected'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _goToCurrentLocation() async {
-    try {
-      // Check if location services are enabled
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        _showErrorSnackBar('Location services are disabled');
-        return;
-      }
-
-      // Check location permissions
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _showErrorSnackBar('Location permissions denied');
-          return;
-        }
-      }
-      
-      if (permission == LocationPermission.deniedForever) {
-        _showErrorSnackBar('Location permissions permanently denied');
-        return;
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
-      
-      _mapController.move(
-        LatLng(position.latitude, position.longitude),
-        15.0,
-      );
-      _showInfoSnackBar('Moved to your current location');
-    } catch (e) {
-      _showErrorSnackBar('Unable to get current location: ${e.toString()}');
-    }
   }
 }
 
-// Data model for notifications
+// NotificationData model class
 class NotificationData {
   final String id;
-  final String customerId;
   final String name;
   final String regNo;
-  final String collectorId;
-  final String date;
-  final String time;
+  final String customerId;
   final String status;
-  final DateTime createdAt;
+  final String time;
+  final String date;
+  final String timeAgo;
   final double? latitude;
   final double? longitude;
   final String? address;
   final String? locationSource;
+  final double? weight;
+  final String? weightUnit;
 
   NotificationData({
     required this.id,
-    required this.customerId,
     required this.name,
     required this.regNo,
-    required this.collectorId,
-    required this.date,
-    required this.time,
+    required this.customerId,
     required this.status,
-    required this.createdAt,
+    required this.time,
+    required this.date,
+    required this.timeAgo,
     this.latitude,
     this.longitude,
     this.address,
     this.locationSource,
+    this.weight,
+    this.weightUnit,
   });
-
-  factory NotificationData.fromFirestore(String id, Map<String, dynamic> data) {
-    final location = data['location'] as Map<String, dynamic>?;
-    
-    return NotificationData(
-      id: id,
-      customerId: data['customerId'] ?? '',
-      name: data['name'] ?? 'Unknown',
-      regNo: data['regNo'] ?? '',
-      collectorId: data['collectorId'] ?? '',
-      date: data['date'] ?? '',
-      time: data['time'] ?? '',
-      status: data['status'] ?? 'Pending',
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      latitude: location?['latitude']?.toDouble(),
-      longitude: location?['longitude']?.toDouble(),
-      address: location?['address'],
-      locationSource: location?['source'],
-    );
-  }
 
   bool get hasLocation => latitude != null && longitude != null;
 
-  String get timeAgo {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
+  factory NotificationData.fromFirestore(String id, Map<String, dynamic> data) {
+    return NotificationData(
+      id: id,
+      name: data['customerName'] ?? 'Unknown',
+      regNo: data['regNo'] ?? 'N/A',
+      customerId: data['customerId'] ?? '',
+      status: data['status'] ?? 'Pending',
+      time: data['time'] ?? '',
+      date: data['date'] ?? '',
+      timeAgo: _formatTimeAgo(data['createdAt']),
+      latitude: data['latitude']?.toDouble(),
+      longitude: data['longitude']?.toDouble(),
+      address: data['address'],
+      locationSource: data['locationSource'],
+      weight: data['weight']?.toDouble(),
+      weightUnit: data['weightUnit'],
+    );
+  }
+
+  static String _formatTimeAgo(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown time';
     
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes}m ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours}h ago';
-    } else {
-      return '${difference.inDays}d ago';
+    try {
+      DateTime createdAt;
+      if (timestamp is Timestamp) {
+        createdAt = timestamp.toDate();
+      } else if (timestamp is DateTime) {
+        createdAt = timestamp;
+      } else {
+        return 'Unknown time';
+      }
+      
+      final now = DateTime.now();
+      final difference = now.difference(createdAt);
+      
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes} min ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours} hr ago';
+      } else if (difference.inDays < 30) {
+        return '${difference.inDays} days ago';
+      } else {
+        return '${(difference.inDays / 30).floor()} months ago';
+      }
+    } catch (e) {
+      return 'Unknown time';
     }
   }
 }

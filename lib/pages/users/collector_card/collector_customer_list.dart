@@ -91,7 +91,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                  Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
                   Text(
                     "Failed to load notifications",
@@ -233,7 +233,6 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                       final time =
                           "${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}";
 
-                      // Calculate time difference
                       final now = DateTime.now();
                       final difference = now.difference(createdAt);
                       String timeAgo;
@@ -336,51 +335,51 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold),
                                 ),
-                              onPressed: () async {
-                                // Navigate to AddWeightPage and wait for result
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => AddWeightPage(
-                                      customerName: customerName,
-                                      regNo: regNo,
-                                      docReference: doc.reference,
-                                      customerId: data['customerId'] ?? 'unknown',
-                                    ),
-                                  ),
-                                );
-
-                                // Only show success message if weight was saved
-                                if (result == true) {
-                                  if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Row(
-                                        children: [
-                                          const Icon(Icons.check_circle, color: Colors.white),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Text(
-                                              '$customerName collected successfully',
-                                              style: const TextStyle(fontWeight: FontWeight.w500),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      backgroundColor: Colors.green,
-                                      duration: const Duration(seconds: 2),
-                                      behavior: SnackBarBehavior.floating,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(10),
+                                onPressed: () async {
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => AddWeightPage(
+                                        customerName: customerName,
+                                        regNo: regNo,
+                                        docReference: doc.reference,
+                                        customerId: data['customerId'] ?? 'unknown',
                                       ),
                                     ),
                                   );
-                                }
-                              },
+
+                                  if (result == true) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.check_circle, color: Colors.white),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                '$customerName collected successfully',
+                                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 2),
+                                        behavior: SnackBarBehavior.floating,
+                                        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16), // ✅ FIXED
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
                             ),
                           ),
                         ),
-                        ));
+                      );
                     },
                   ),
                 ),

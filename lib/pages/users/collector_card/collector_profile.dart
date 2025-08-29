@@ -91,13 +91,17 @@ class _CollectorProfileState extends State<CollectorProfile> {
           await _firestore.collection('users').doc(user.uid).get();
 
       if (!doc.exists) {
-        String regNum = const Uuid().v4();
+        // Generate a proper collector registration number
+        String regNum = 'COL-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+        
         await _firestore.collection('users').doc(user.uid).set({
           'name': user.displayName ?? '',
           'email': user.email ?? '',
           'phone': '',
           'profileImage': '',
           'registrationNumber': regNum,
+          'userType': 'collector', // Add user type
+          'createdAt': FieldValue.serverTimestamp(),
         });
 
         setState(() {
@@ -107,17 +111,29 @@ class _CollectorProfileState extends State<CollectorProfile> {
           profileImageUrl = '';
         });
       } else {
+        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        
+        // Check if registration number exists, if not create one
+        String regNum = data['registrationNumber'] as String? ?? '';
+        if (regNum.isEmpty) {
+          regNum = 'COL-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+          await _firestore.collection('users').doc(user.uid).update({
+            'registrationNumber': regNum,
+          });
+        }
+        
         setState(() {
-          nameController.text = doc['name'] ?? '';
-          phoneController.text = doc['phone'] ?? '';
-          registrationNumber = doc['registrationNumber'] ?? '';
-          profileImageUrl = doc['profileImage'] ?? '';
+          nameController.text = data['name'] as String? ?? '';
+          phoneController.text = data['phone'] as String? ?? '';
+          registrationNumber = regNum;
+          profileImageUrl = data['profileImage'] as String? ?? '';
         });
       }
     } catch (e) {
       debugPrint("Error loading profile: $e");
+      // Generate a fallback registration number
       setState(() {
-        registrationNumber = '';
+        registrationNumber = 'COL-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
       });
     } finally {
       setState(() => isLoading = false);
@@ -375,6 +391,25 @@ class _CollectorProfileState extends State<CollectorProfile> {
                       color: Colors.white.withOpacity(0.9),
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  // Display Registration Number in header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      'ID: ${registrationNumber ?? "Loading..."}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 30),
                 ],
               ),
@@ -414,7 +449,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
                   const Divider(height: 1, indent: 20, endIndent: 20),
                   _buildProfileCard("Phone Number", phoneController.text.isEmpty ? "Not provided" : phoneController.text, Icons.phone, _editPhone),
                   const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildProfileCard("Registration ID", registrationNumber ?? '', Icons.badge, null, readOnly: true),
+                  _buildProfileCard("Collector ID", registrationNumber ?? 'Generating...', Icons.badge, null, readOnly: true),
                   const SizedBox(height: 20),
                 ],
               ),

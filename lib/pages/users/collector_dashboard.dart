@@ -464,7 +464,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                                   _buildEnhancedDashboardCard(
                                     title: "Profile Settings",
                                     subtitle: "Manage your collector profile",
-                                    icon: Icons.history,
+                                    icon: Icons.settings,
                                     color: kMainColor,
                                     delay: 300,
                                     onTap: () => Navigator.pushNamed(

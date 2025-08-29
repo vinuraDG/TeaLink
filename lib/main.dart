@@ -1,3 +1,4 @@
+import 'package:TeaLink/pages/users/admin_dashboard.dart';
 import 'package:TeaLink/pages/users/collector_card/collection_history.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_customer_list.dart';
 import 'package:TeaLink/pages/users/collector_card/collector_map.dart';
@@ -54,6 +55,8 @@ class MyApp extends StatelessWidget {
         '/register': (context) => UserRegistrationScreen(),
         '/signin': (context) => LoginPage(),
         '/option': (context) => RoleSelectionPage(),
+
+        '/Admin': (context) => AdminDashboard(),
 
         '/customerDashboard': (context) => CustomerDashboard(),
         '/customer_profile': (context) =>  ProfilePage(),
