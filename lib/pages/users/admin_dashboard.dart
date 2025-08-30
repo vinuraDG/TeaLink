@@ -17,13 +17,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Statistics
-  int totalUsers = 0;
+  // Statistics (totalUsers now excludes admins)
+  int totalUsers = 0; // Only customers + collectors
   int totalCustomers = 0;
   int totalCollectors = 0;
   int totalHarvests = 0;
   int totalPayments = 0;
-  int todayUsers = 0;
+  int todayUsers = 0; // Only customers + collectors registered today
   int todayHarvests = 0;
   List<Map<String, dynamic>> alerts = [];
   bool isLoading = true;
@@ -69,55 +69,58 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   void _setupRealTimeListeners() {
-    // First check if user is admin before setting up listeners
-    _checkAdminStatus().then((isAdminUser) {
-      if (!isAdminUser) {
-        print('User is not admin, falling back to manual data loading');
-        _loadStatisticsManually();
-        return;
-      }
+    // Load manually first, then set up real-time listeners
+    _loadStatisticsManually().then((_) {
+      // Check if user is admin before setting up listeners
+      _checkAdminStatus().then((isAdminUser) {
+        if (!isAdminUser) {
+          print('User is not admin, using manual data loading only');
+          return;
+        }
 
-      // Real-time listener for users collection (only if admin)
-      _usersSubscription = _firestore.collection('users').snapshots().listen((snapshot) {
-        if (mounted) {
-          _updateUserStatistics(snapshot);
-        }
-      }, onError: (e) {
-        print('Error listening to users: $e');
-        if (mounted) {
-          // Fallback to manual loading if real-time fails
-          _loadStatisticsManually();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Switched to manual refresh mode')),
-          );
-        }
-      });
+        // Real-time listener for users collection (only if admin)
+        _usersSubscription = _firestore.collection('users').snapshots().listen((snapshot) {
+          if (mounted) {
+            _updateUserStatistics(snapshot);
+          }
+        }, onError: (e) {
+          print('Error listening to users: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Real-time updates disabled. Using manual refresh.')),
+            );
+          }
+        });
 
-      // Real-time listener for harvest_value collection
-      _harvestsSubscription = _firestore.collection('harvest_value').snapshots().listen((snapshot) {
-        if (mounted) {
-          _updateHarvestStatistics(snapshot);
-        }
-      }, onError: (e) {
-        print('Error listening to harvests: $e');
-        if (mounted) {
-          _loadHarvestStatisticsManually();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating harvest statistics')),
-          );
-        }
-      });
+        // Real-time listener for harvest_value collection
+        _harvestsSubscription = _firestore.collection('harvest_value').snapshots().listen((snapshot) {
+          if (mounted) {
+            _updateHarvestStatistics(snapshot);
+          }
+        }, onError: (e) {
+          print('Error listening to harvests: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Harvest updates disabled. Using manual refresh.')),
+            );
+          }
+        });
 
-      // Real-time listener for payments collection
-      _paymentsSubscription = _firestore.collection('payments').snapshots().listen((snapshot) {
-        if (mounted) {
-          setState(() {
-            totalPayments = snapshot.docs.length;
-          });
-        }
-      }, onError: (e) {
-        print('Error listening to payments: $e');
-        _loadPaymentStatisticsManually();
+        // Real-time listener for payments collection
+        _paymentsSubscription = _firestore.collection('payments').snapshots().listen((snapshot) {
+          if (mounted) {
+            setState(() {
+              totalPayments = snapshot.docs.length;
+            });
+          }
+        }, onError: (e) {
+          print('Error listening to payments: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Payment updates disabled. Using manual refresh.')),
+            );
+          }
+        });
       });
     });
   }
@@ -156,28 +159,47 @@ class _AdminDashboardState extends State<AdminDashboard> {
         final data = doc.data();
         final role = data['role']?.toString().toLowerCase() ?? '';
         
+        // Only count customers and collectors, exclude admin
         if (role == 'customer') {
           customers++;
+          
+          // Check if customer registered today
+          final createdAt = data['createdAt'];
+          if (createdAt != null) {
+            DateTime userCreatedDate;
+            if (createdAt is Timestamp) {
+              userCreatedDate = createdAt.toDate();
+            } else if (createdAt is String) {
+              userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
+            } else {
+              userCreatedDate = DateTime.now();
+            }
+            
+            if (userCreatedDate.isAfter(startOfDay)) {
+              usersToday++;
+            }
+          }
         } else if (role == 'collector') {
           collectors++;
-        }
-        
-        // Check if user registered today
-        final createdAt = data['createdAt'];
-        if (createdAt != null) {
-          DateTime userCreatedDate;
-          if (createdAt is Timestamp) {
-            userCreatedDate = createdAt.toDate();
-          } else if (createdAt is String) {
-            userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
-          } else {
-            userCreatedDate = DateTime.now();
-          }
           
-          if (userCreatedDate.isAfter(startOfDay)) {
-            usersToday++;
+          // Check if collector registered today
+          final createdAt = data['createdAt'];
+          if (createdAt != null) {
+            DateTime userCreatedDate;
+            if (createdAt is Timestamp) {
+              userCreatedDate = createdAt.toDate();
+            } else if (createdAt is String) {
+              userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
+            } else {
+              userCreatedDate = DateTime.now();
+            }
+            
+            if (userCreatedDate.isAfter(startOfDay)) {
+              usersToday++;
+            }
           }
         }
+        // Skip admin users - they are not counted in totalUsers
       }
 
       // Update harvest statistics
@@ -196,10 +218,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
       if (mounted) {
         setState(() {
-          totalUsers = usersSnapshot.docs.length;
+          // totalUsers now only includes customers + collectors
+          totalUsers = customers + collectors;
           totalCustomers = customers;
           totalCollectors = collectors;
-          todayUsers = usersToday;
+          todayUsers = usersToday; // Only new customers + collectors today
           totalHarvests = harvestsSnapshot.docs.length;
           todayHarvests = harvestsToday;
           totalPayments = paymentsSnapshot.docs.length;
@@ -270,35 +293,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
       final data = doc.data() as Map<String, dynamic>;
       final role = data['role']?.toString().toLowerCase() ?? '';
       
+      // Only count customers and collectors, exclude admin
       if (role == 'customer') {
         customers++;
+        
+        // Check if customer registered today
+        final createdAt = data['createdAt'];
+        if (createdAt != null) {
+          DateTime userCreatedDate;
+          if (createdAt is Timestamp) {
+            userCreatedDate = createdAt.toDate();
+          } else if (createdAt is String) {
+            userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
+          } else {
+            userCreatedDate = DateTime.now();
+          }
+          
+          if (userCreatedDate.isAfter(startOfDay)) {
+            usersToday++;
+          }
+        }
       } else if (role == 'collector') {
         collectors++;
-      }
-      
-      // Check if user registered today
-      final createdAt = data['createdAt'];
-      if (createdAt != null) {
-        DateTime userCreatedDate;
-        if (createdAt is Timestamp) {
-          userCreatedDate = createdAt.toDate();
-        } else if (createdAt is String) {
-          userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
-        } else {
-          userCreatedDate = DateTime.now();
-        }
         
-        if (userCreatedDate.isAfter(startOfDay)) {
-          usersToday++;
+        // Check if collector registered today
+        final createdAt = data['createdAt'];
+        if (createdAt != null) {
+          DateTime userCreatedDate;
+          if (createdAt is Timestamp) {
+            userCreatedDate = createdAt.toDate();
+          } else if (createdAt is String) {
+            userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
+          } else {
+            userCreatedDate = DateTime.now();
+          }
+          
+          if (userCreatedDate.isAfter(startOfDay)) {
+            usersToday++;
+          }
         }
       }
+      // Skip admin users - they are not counted
     }
 
     setState(() {
-      totalUsers = snapshot.docs.length;
+      // totalUsers now only includes customers + collectors
+      totalUsers = customers + collectors;
       totalCustomers = customers;
       totalCollectors = collectors;
-      todayUsers = usersToday;
+      todayUsers = usersToday; // Only new customers + collectors today
     });
   }
 
@@ -576,7 +619,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
               ),
             
-            // Statistics Cards (Real-time updated)
+            // Statistics Cards (Real-time updated, excluding admin from Total Users)
             GridView.count(
               crossAxisCount: 2,
               shrinkWrap: true,
@@ -657,6 +700,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
+      
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),

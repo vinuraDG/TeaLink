@@ -67,6 +67,7 @@ class _ViewHarvestsPageState extends State<ViewHarvestsPage> {
       await _loadHarvests();
 
     } catch (e) {
+      print('Error in _checkAdminAndLoadHarvests: $e');
       setState(() {
         _errorMessage = 'Error checking permissions: $e';
         _isLoading = false;
@@ -75,11 +76,22 @@ class _ViewHarvestsPageState extends State<ViewHarvestsPage> {
   }
 
   Future<void> _loadHarvests() async {
+    if (!_isAdmin) {
+      setState(() {
+        _errorMessage = 'Admin access required';
+        _isLoading = false;
+      });
+      return;
+    }
+
     try {
+      print('Loading harvests...');
       final harvestsSnapshot = await _firestore
           .collection('harvest_value')
           .orderBy('createdAt', descending: true)
           .get();
+      
+      print('Harvests loaded successfully: ${harvestsSnapshot.docs.length} documents');
       
       setState(() {
         _harvests = harvestsSnapshot.docs;
@@ -87,6 +99,7 @@ class _ViewHarvestsPageState extends State<ViewHarvestsPage> {
         _errorMessage = null;
       });
     } catch (e) {
+      print('Error loading harvests: $e');
       setState(() {
         _errorMessage = 'Error loading harvests: $e';
         _isLoading = false;
@@ -160,7 +173,16 @@ class _ViewHarvestsPageState extends State<ViewHarvestsPage> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading harvests...'),
+          ],
+        ),
+      );
     }
 
     if (_errorMessage != null) {
