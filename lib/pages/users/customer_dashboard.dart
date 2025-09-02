@@ -93,53 +93,218 @@ class _CustomerDashboardState extends State<CustomerDashboard>
     }
   }
 
-  Future<void> fetchWeeklyHarvest() async {
-    if (user != null) {
+Future<void> fetchWeeklyHarvest() async {
+  print('=== Starting fetchWeeklyHarvest ===');
+  
+  if (user == null) {
+    print('User is null');
+    return;
+  }
+
+  try {
+    print('Fetching user document for UID: ${user!.uid}');
+    final userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user!.uid)
+        .get();
+
+    if (!userDoc.exists) {
+      print('User document does not exist');
+      if (mounted) {
+        setState(() => weeklyHarvest = '0kg');
+      }
+      return;
+    }
+
+    final userData = userDoc.data();
+    print('User data: $userData');
+    
+    final regNo = userData?['registrationNumber'];
+    print('Registration number: $regNo');
+    
+    if (regNo == null || regNo.isEmpty) {
+      print('Registration number is null or empty');
+      if (mounted) {
+        setState(() => weeklyHarvest = '0kg');
+      }
+      return;
+    }
+
+    final now = DateTime.now();
+    print('Current date: $now');
+    
+    // Try multiple week calculation methods to find the correct one
+    final weekIds = [
+      "${now.year}-W${_getISOWeekNumber(now).toString().padLeft(2, '0')}",
+      "${now.year}-W${_getSimpleWeekNumber(now)}",
+      "${now.year}-W1", // Since your data shows 2025-W1
+    ];
+    
+    print('Trying week IDs: $weekIds');
+
+    // Try each week ID until we find data
+    for (String weekId in weekIds) {
+      print('Checking weekly collection for weekId: $weekId');
+      
       try {
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user!.uid)
-            .get();
-
-        final regNo = userDoc.data()?['registrationNumber'];
-        if (regNo == null || regNo.isEmpty) {
-          if (mounted) {
-            setState(() => weeklyHarvest = '0kg');
-          }
-          return;
-        }
-
-        final now = DateTime.now();
-        // Fixed week calculation - using proper ISO week calculation
-        final weekId = "${now.year}-W${_getWeekNumber(now)}";
-
         final weeklyDoc = await FirebaseFirestore.instance
             .collection('customers')
             .doc(regNo)
             .collection('weekly')
             .doc(weekId)
             .get();
-
-        if (mounted) {
-          setState(() {
-            weeklyHarvest = "${weeklyDoc.data()?['total'] ?? 0}kg";
-          });
+        
+        print('Weekly doc exists for $weekId: ${weeklyDoc.exists}');
+        
+        if (weeklyDoc.exists) {
+          final weeklyData = weeklyDoc.data() as Map<String, dynamic>?;
+          print('Weekly doc data: $weeklyData');
+          
+          if (weeklyData != null && weeklyData['total'] != null) {
+            final total = weeklyData['total'];
+            print('Weekly total found: $total for week $weekId');
+            
+            if (mounted) {
+              setState(() {
+                weeklyHarvest = "${total}kg";
+              });
+            }
+            print('Weekly harvest updated to: $weeklyHarvest');
+            return;
+          }
         }
       } catch (e) {
-        if (mounted) {
-          setState(() => weeklyHarvest = '0kg');
+        print('Error checking weekId $weekId: $e');
+        continue;
+      }
+    }
+
+    print('No weekly total found in any week format, checking all weekly documents...');
+    
+    // If no specific week found, get the most recent weekly total
+    try {
+      final weeklySnapshot = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(regNo)
+          .collection('weekly')
+          .orderBy('updatedAt', descending: true)
+          .limit(1)
+          .get();
+      
+      print('Most recent weekly docs found: ${weeklySnapshot.docs.length}');
+      
+      if (weeklySnapshot.docs.isNotEmpty) {
+        final mostRecentDoc = weeklySnapshot.docs.first;
+        final weeklyData = mostRecentDoc.data();
+        print('Most recent weekly data: $weeklyData');
+        
+        if (weeklyData['total'] != null) {
+          final total = weeklyData['total'];
+          print('Using most recent weekly total: $total from ${mostRecentDoc.id}');
+          
+          if (mounted) {
+            setState(() {
+              weeklyHarvest = "${total}kg";
+            });
+          }
+          return;
+        }
+      }
+    } catch (e) {
+      print('Error getting recent weekly data: $e');
+    }
+
+    // If still no data, calculate from harvests
+    print('No weekly data found, calculating from harvests...');
+    await _calculateFromHarvests(regNo, now);
+
+  } catch (e) {
+    print('Error in fetchWeeklyHarvest: $e');
+    print('Stack trace: ${StackTrace.current}');
+    if (mounted) {
+      setState(() => weeklyHarvest = '0kg');
+    }
+  }
+  
+  print('=== fetchWeeklyHarvest completed ===');
+}
+
+Future<void> _calculateFromHarvests(String regNo, DateTime now) async {
+  try {
+    // Calculate the start of the current week (Monday)
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    
+    // Calculate end of week (Sunday)
+    final endOfWeek = startOfWeekDate.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+    
+    print('Calculating from harvests for week: $startOfWeekDate to $endOfWeek');
+    
+    final harvestsQuery = await FirebaseFirestore.instance
+        .collection('customers')
+        .doc(regNo)
+        .collection('harvests')
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeekDate))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfWeek))
+        .get();
+
+    print('Harvests found: ${harvestsQuery.docs.length}');
+
+    double totalWeight = 0.0;
+    for (var doc in harvestsQuery.docs) {
+      final data = doc.data();
+      final weight = data['weight'];
+      
+      if (weight != null) {
+        if (weight is num) {
+          totalWeight += weight.toDouble();
+        } else if (weight is String) {
+          totalWeight += double.tryParse(weight) ?? 0.0;
         }
       }
     }
-  }
 
-  // Helper method for proper week calculation
-  int _getWeekNumber(DateTime date) {
-    final firstDayOfYear = DateTime(date.year, 1, 1);
-    final dayOfYear = date.difference(firstDayOfYear).inDays + 1;
-    return ((dayOfYear - 1) / 7).ceil();
-  }
+    print('Calculated total: ${totalWeight}kg');
 
+    if (mounted) {
+      final formattedWeight = totalWeight == 0 ? '0' : totalWeight.toStringAsFixed(1);
+      setState(() {
+        weeklyHarvest = "${formattedWeight}kg";
+      });
+    }
+  } catch (e) {
+    print('Error calculating from harvests: $e');
+    if (mounted) {
+      setState(() => weeklyHarvest = '0kg');
+    }
+  }
+}
+
+// Original ISO week calculation
+int _getISOWeekNumber(DateTime date) {
+  final jan4 = DateTime(date.year, 1, 4);
+  final startOfYear = jan4.subtract(Duration(days: jan4.weekday - 1));
+  final daysDiff = date.difference(startOfYear).inDays;
+  return (daysDiff / 7).floor() + 1;
+}
+
+// Simple week calculation (week 1 starts Jan 1st)
+int _getSimpleWeekNumber(DateTime date) {
+  final jan1 = DateTime(date.year, 1, 1);
+  final daysDiff = date.difference(jan1).inDays;
+  return (daysDiff / 7).floor() + 1;
+}
+
+// Debug method to check what week calculations give
+Future<void> debugWeekCalculations() async {
+  final now = DateTime.now();
+  print('=== Week Calculation Debug ===');
+  print('Current date: $now');
+  print('ISO Week: ${now.year}-W${_getISOWeekNumber(now).toString().padLeft(2, '0')}');
+  print('Simple Week: ${now.year}-W${_getSimpleWeekNumber(now)}');
+  print('Day of year: ${now.difference(DateTime(now.year, 1, 1)).inDays + 1}');
+  print('Week day: ${now.weekday}');
+}
   Future<void> _loadProfileImage() async {
     try {
       final directory = await getApplicationDocumentsDirectory();

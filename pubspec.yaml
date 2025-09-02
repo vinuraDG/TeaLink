@@ -28,7 +28,8 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
-
+  
+  connectivity_plus: ^4.0.2
   flutter_map: ^6.0.1
   latlong2: 0.9.1
   

@@ -21,6 +21,11 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
     final CollectionReference notifyCollection =
         FirebaseFirestore.instance.collection('notify_for_collection');
 
+    // ✅ Get start & end of today
+    DateTime now = DateTime.now();
+    DateTime startOfDay = DateTime(now.year, now.month, now.day, 0, 0, 0);
+    DateTime endOfDay = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text(
@@ -38,17 +43,22 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
         ),
         backgroundColor: kMainColor,
         actions: [
-          // Show notification count
+          // ✅ Notification count for TODAY only
           StreamBuilder<QuerySnapshot>(
             stream: notifyCollection
                 .where('collectorId', isEqualTo: widget.collectorId)
                 .where('status', isEqualTo: 'Pending')
+                .where('createdAt',
+                    isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+                .where('createdAt',
+                    isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
                 .snapshots(),
             builder: (context, snapshot) {
               final count = snapshot.data?.docs.length ?? 0;
               return Container(
                 margin: const EdgeInsets.only(right: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: count > 0 ? Colors.red : Colors.grey,
                   borderRadius: BorderRadius.circular(12),
@@ -67,9 +77,14 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
+        // ✅ Notifications list for TODAY only
         stream: notifyCollection
             .where('collectorId', isEqualTo: widget.collectorId)
             .where('status', isEqualTo: 'Pending')
+            .where('createdAt',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
+            .where('createdAt',
+                isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
             .orderBy('createdAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
@@ -92,26 +107,28 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   Text(
                     "Failed to load notifications",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
+                      color: Colors.grey,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     "Error: ${snapshot.error}",
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => setState(() {}),
-                    style: ElevatedButton.styleFrom(backgroundColor: kMainColor),
-                    child: const Text("Retry", style: TextStyle(color: Colors.white)),
+                    style:
+                        ElevatedButton.styleFrom(backgroundColor: kMainColor),
+                    child: const Text("Retry",
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -138,7 +155,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                       color: Colors.green[300],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   Text(
                     "All Caught Up!",
                     style: TextStyle(
@@ -147,7 +164,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                       color: Colors.green[700],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Text(
                     "No pending collection requests",
                     style: TextStyle(
@@ -156,10 +173,11 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                       color: Colors.grey[600],
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     "All customers have been collected today",
-                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                    style:
+                        TextStyle(fontSize: 14, color: Colors.grey[500]),
                   ),
                 ],
               ),
@@ -190,7 +208,8 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.pending_actions, color: Colors.white, size: 24),
+                    const Icon(Icons.pending_actions,
+                        color: Colors.white, size: 24),
                     const SizedBox(width: 12),
                     Text(
                       "${notifications.length} Pending Collection${notifications.length > 1 ? 's' : ''}",
@@ -209,21 +228,25 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                 child: RefreshIndicator(
                   onRefresh: () async {
                     setState(() {});
-                    await Future.delayed(const Duration(milliseconds: 500));
+                    await Future.delayed(
+                        const Duration(milliseconds: 500));
                   },
                   child: ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     itemCount: notifications.length,
                     itemBuilder: (context, index) {
                       final doc = notifications[index];
-                      final data = doc.data() as Map<String, dynamic>? ?? {};
+                      final data =
+                          doc.data() as Map<String, dynamic>? ?? {};
 
-                      final customerName = data['name']?.toString() ?? 'Unknown';
+                      final customerName =
+                          data['name']?.toString() ?? 'Unknown';
                       final regNo = data['regNo']?.toString() ?? 'N/A';
 
                       DateTime createdAt;
                       try {
-                        createdAt = (data['createdAt'] as Timestamp).toDate();
+                        createdAt =
+                            (data['createdAt'] as Timestamp).toDate();
                       } catch (_) {
                         createdAt = DateTime.now();
                       }
@@ -259,7 +282,8 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                             ),
                           ),
                           child: ListTile(
-                            contentPadding: const EdgeInsets.only(left: 16, top: 8, bottom: 8, right: 8),
+                            contentPadding: const EdgeInsets.only(
+                                left: 16, top: 8, bottom: 8, right: 8),
                             leading: Stack(
                               children: [
                                 CircleAvatar(
@@ -284,7 +308,8 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                     decoration: BoxDecoration(
                                       color: Colors.orange,
                                       shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 2),
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
                                     ),
                                   ),
                                 ),
@@ -293,7 +318,8 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                             title: Text(
                               customerName,
                               style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold),
                               overflow: TextOverflow.ellipsis,
                             ),
                             subtitle: Column(
@@ -302,16 +328,21 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                 const SizedBox(height: 4),
                                 Text('Reg No: $regNo',
                                     style: const TextStyle(
-                                        fontSize: 14, fontWeight: FontWeight.w600)),
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600)),
                                 const SizedBox(height: 2),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 12, color: Colors.grey[600]),
+                                    Icon(Icons.access_time,
+                                        size: 12,
+                                        color: Colors.grey[600]),
                                     const SizedBox(width: 4),
                                     Expanded(
-                                      child: Text('$timeAgo • $date at $time',
+                                      child: Text(
+                                          '$timeAgo • $date at $time',
                                           style: TextStyle(
-                                              fontSize: 12, color: Colors.grey[600])),
+                                              fontSize: 12,
+                                              color: Colors.grey[600])),
                                     ),
                                   ],
                                 ),
@@ -324,7 +355,8 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                   backgroundColor: Colors.green[700],
                                   foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20)),
+                                      borderRadius:
+                                          BorderRadius.circular(20)),
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 6),
                                   elevation: 2,
@@ -336,40 +368,53 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                       fontWeight: FontWeight.bold),
                                 ),
                                 onPressed: () async {
-                                  final result = await Navigator.push(
+                                  final result =
+                                      await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => AddWeightPage(
+                                      builder: (context) =>
+                                          AddWeightPage(
                                         customerName: customerName,
                                         regNo: regNo,
                                         docReference: doc.reference,
-                                        customerId: data['customerId'] ?? 'unknown',
+                                        customerId:
+                                            data['customerId'] ??
+                                                'unknown',
                                       ),
                                     ),
                                   );
 
                                   if (result == true) {
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
                                       SnackBar(
                                         content: Row(
                                           children: [
-                                            const Icon(Icons.check_circle, color: Colors.white),
+                                            const Icon(Icons.check_circle,
+                                                color: Colors.white),
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
                                                 '$customerName collected successfully',
-                                                style: const TextStyle(fontWeight: FontWeight.w500),
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.w500),
                                               ),
                                             ),
                                           ],
                                         ),
                                         backgroundColor: Colors.green,
-                                        duration: const Duration(seconds: 2),
+                                        duration:
+                                            const Duration(seconds: 2),
                                         behavior: SnackBarBehavior.floating,
-                                        margin: const EdgeInsets.only(bottom: 80, left: 16, right: 16), // ✅ FIXED
+                                        margin: const EdgeInsets.only(
+                                            bottom: 80,
+                                            left: 16,
+                                            right: 16),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                       ),
                                     );
@@ -410,8 +455,10 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
             topRight: Radius.circular(25),
           ),
           child: BottomNavigationBar(
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            selectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle:
+                const TextStyle(fontWeight: FontWeight.w500),
             currentIndex: _selectedIndex,
             onTap: _onItemTapped,
             selectedItemColor: kMainColor,

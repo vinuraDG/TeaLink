@@ -66,7 +66,7 @@ class MyApp extends StatelessWidget {
         '/customer_collector_info': (context) => CollectorInfoPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',), 
 
         '/collectorDashboard': (context) => CollectorDashboard(),
-        '/collector_customer_list': (context) =>  CollectorNotificationPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',),
+        
         
         '/collector_map': (context) => CollectorMapPage(),
         '/collector_history': (context) => CollectionHistoryPage(collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',),

@@ -21,6 +21,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   final MapController _mapController = MapController();
   StreamSubscription<QuerySnapshot>? _notificationStream;
   List<NotificationData> _notifications = [];
+  List<NotificationData> _todaysNotifications = []; // Add today's filtered list
   NotificationData? _selectedNotification;
   bool _isLoading = true;
   String? _errorMessage;
@@ -98,14 +99,23 @@ class _CollectorMapPageState extends State<CollectorMapPage>
       parent: _cardAnimationController,
       curve: Curves.easeOutCubic,
     ));
+
+    _pulseAnimationController.repeat();
   }
 
   Future<void> _initializeMap() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       await _setupNotificationStream();
       if (mounted) {
         _fabAnimationController.forward();
         _pulseAnimationController.repeat();
+        setState(() {
+          _isLoading = false;
+        });
       }
     } catch (e) {
       if (mounted) {
@@ -130,19 +140,21 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     }
 
     try {
-      // Stream notifications for this collector - including all statuses to show weight info
+      // Simplified query - fetch all collector's notifications and filter client-side
+      // This avoids the composite index requirement
       _notificationStream = FirebaseFirestore.instance
           .collection('notify_for_collection')
           .where('collectorId', isEqualTo: currentUser.uid)
-          .orderBy('createdAt', descending: true)
           .snapshots()
           .listen(
         (snapshot) {
+          print('Received ${snapshot.docs.length} documents from Firestore');
           if (mounted) {
             _updateNotifications(snapshot.docs);
           }
         },
         onError: (error) {
+          print('Notification stream error: $error');
           if (mounted) {
             setState(() {
               _errorMessage = 'Error loading notifications: ${error.toString()}';
@@ -152,6 +164,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
         },
       );
     } catch (e) {
+      print('Error setting up notification stream: $e');
       if (mounted) {
         setState(() {
           _errorMessage = 'Failed to setup notification stream: ${e.toString()}';
@@ -161,42 +174,138 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     }
   }
 
-  void _updateNotifications(List<QueryDocumentSnapshot> docs) {
-    if (!mounted) return;
+  // Helper method to check if a notification is from today
+  bool _isFromToday(NotificationData notification) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     
+    // Parse the notification's createdAt or date
+    DateTime? notificationDate;
+    
+    try {
+      if (notification.createdAt != null) {
+        notificationDate = notification.createdAt;
+      } else if (notification.date.isNotEmpty) {
+        // Try to parse the date string
+        notificationDate = DateTime.parse(notification.date);
+      }
+      
+      if (notificationDate != null) {
+        final notificationDay = DateTime(
+          notificationDate.year, 
+          notificationDate.month, 
+          notificationDate.day
+        );
+        return notificationDay.isAtSameMomentAs(today);
+      }
+    } catch (e) {
+      print('Error parsing date for notification ${notification.id}: $e');
+    }
+    
+    return false;
+  }
+
+  void _updateNotifications(List<QueryDocumentSnapshot> docs) {
     final notifications = <NotificationData>[];
+    int documentsWithLocation = 0;
+    int documentsProcessed = 0;
+    
+    print('Processing ${docs.length} documents...');
     
     for (var doc in docs) {
       try {
+        documentsProcessed++;
         final data = doc.data() as Map<String, dynamic>?;
         if (data != null) {
+          print('Document ${doc.id} data: $data');
+          
           final notification = NotificationData.fromFirestore(doc.id, data);
+          notifications.add(notification);
+          
           if (notification.hasLocation) {
-            notifications.add(notification);
+            documentsWithLocation++;
+            print('✓ Document ${doc.id} has valid location: lat=${notification.latitude}, lng=${notification.longitude}');
+          } else {
+            print('✗ Document ${doc.id} missing location data');
           }
         }
       } catch (e) {
-        print('Error parsing notification: $e');
+        print('Error parsing notification ${doc.id}: $e');
       }
     }
     
-    setState(() {
-      _notifications = notifications;
-      _isLoading = false;
+    // Filter for today's notifications client-side
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final tomorrow = today.add(const Duration(days: 1));
+    
+    final todaysNotifications = notifications.where((notification) {
+      if (notification.createdAt != null) {
+        return notification.createdAt!.isAfter(today) && 
+               notification.createdAt!.isBefore(tomorrow);
+      } else if (notification.date.isNotEmpty) {
+        try {
+          // Try to parse date string (assuming format like "2024-01-15" or similar)
+          final notificationDate = DateTime.parse(notification.date);
+          final notificationDay = DateTime(
+            notificationDate.year,
+            notificationDate.month,
+            notificationDate.day
+          );
+          return notificationDay.isAtSameMomentAs(today);
+        } catch (e) {
+          print('Error parsing date ${notification.date}: $e');
+          return false;
+        }
+      }
+      return false;
+    }).toList();
+    
+    final todaysDocumentsWithLocation = todaysNotifications
+        .where((n) => n.hasLocation)
+        .length;
+    
+    print('Summary: $documentsProcessed total processed, ${todaysNotifications.length} from today, $todaysDocumentsWithLocation with location');
+    
+    // Sort notifications
+    todaysNotifications.sort((a, b) {
+      if (a.hasLocation && !b.hasLocation) return -1;
+      if (!a.hasLocation && b.hasLocation) return 1;
+      return b.timeAgo.compareTo(a.timeAgo);
     });
     
-    if (_notifications.isNotEmpty) {
-      // Delay to ensure map is ready
-      Future.delayed(const Duration(milliseconds: 500), () {
-        if (mounted) {
-          _fitMarkersInView();
-        }
-      });
-    }
+    setState(() {
+      _notifications = notifications; // Keep all notifications for reference
+      _todaysNotifications = todaysNotifications; // Today's filtered notifications
+      _isLoading = false;
+      
+      if (todaysNotifications.isEmpty) {
+        _errorMessage = 'No collection requests found for today.';
+      } else if (todaysDocumentsWithLocation == 0) {
+        _errorMessage = 'Found ${todaysNotifications.length} collection requests for today, but none have location data.\n\nPossible solutions:\n1. Ask customers to enable location when requesting\n2. Check if location data is stored in a different format\n3. Verify Firestore security rules allow location reading';
+      } else {
+        _errorMessage = null;
+        print('Successfully loaded $todaysDocumentsWithLocation notifications with location out of ${todaysNotifications.length} total for today');
+        
+        // Fit markers in view after a delay
+        Future.delayed(const Duration(milliseconds: 1000), () {
+          if (mounted) {
+            _fitMarkersInView();
+          }
+        });
+      }
+    });
   }
 
+  // UPDATED: Only show today's pending notifications on map
   List<Marker> _buildMarkers() {
-    return _notifications.where((n) => n.hasLocation).map((notification) {
+    final todaysPendingNotifications = _todaysNotifications
+        .where((n) => n.hasLocation && n.status == 'Pending')
+        .toList();
+    
+    print('Building ${todaysPendingNotifications.length} markers for today (pending only)');
+    
+    return todaysPendingNotifications.map((notification) {
       return Marker(
         width: 80.0,
         height: 80.0,
@@ -219,14 +328,14 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   ),
                 ),
               ),
-              // Main marker background
+              // Main marker background - always orange for pending
               Container(
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: _getMarkerColors(notification),
+                    colors: [Colors.orange, Colors.orange[700]!],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -240,27 +349,13 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                     ),
                   ],
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      _getMarkerIcon(notification),
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    if (notification.weight != null)
-                      Text(
-                        '${notification.weight}kg',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 8,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
+                child: const Icon(
+                  Icons.pending,
+                  color: Colors.white,
+                  size: 20,
                 ),
               ),
-              // Status indicator
+              // Status indicator - always red for pending
               Positioned(
                 top: 0,
                 right: 0,
@@ -269,19 +364,18 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   height: 20,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: _getStatusColor(notification),
+                    color: Colors.red,
                     border: Border.all(color: Colors.white, width: 2),
                   ),
-                  child: Icon(
-                    _getStatusIcon(notification),
+                  child: const Icon(
+                    Icons.hourglass_empty,
                     color: Colors.white,
                     size: 10,
                   ),
                 ),
               ),
               // Pulse animation for pending notifications
-              if (notification.status == 'Pending')
-                _buildPulseAnimation(),
+              _buildPulseAnimation(),
             ],
           ),
         ),
@@ -329,32 +423,54 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     }
   }
 
+  // UPDATED: Only fit today's pending notifications in view
   void _fitMarkersInView() {
-    if (_notifications.isEmpty || !mounted) return;
-    
-    final locations = _notifications
-        .where((n) => n.hasLocation)
+    // Check if widget is mounted and controller is not disposed
+    if (!mounted) {
+      print('Widget not mounted, skipping fit markers');
+      return;
+    }
+
+    final todaysPendingLocations = _todaysNotifications
+        .where((n) => n.hasLocation && n.status == 'Pending')
         .map((n) => LatLng(n.latitude!, n.longitude!))
         .toList();
     
-    if (locations.isEmpty) return;
+    print('Fitting ${todaysPendingLocations.length} today\'s pending markers in view');
+    
+    if (todaysPendingLocations.isEmpty) {
+      print('No today\'s pending locations to fit');
+      // Center on Sri Lanka if no pending locations
+      try {
+        _mapController.move(_defaultLocation, _defaultZoom);
+      } catch (e) {
+        print('Error moving to default location: $e');
+      }
+      return;
+    }
 
     try {
-      if (locations.length == 1) {
-        // If only one location, just center on it
-        _mapController.move(locations.first, 15.0);
+      if (todaysPendingLocations.length == 1) {
+        print('Single today\'s pending location, centering at: ${todaysPendingLocations.first}');
+        _mapController.move(todaysPendingLocations.first, 15.0);
       } else {
-        // Calculate bounds for multiple locations
-        double minLat = locations.first.latitude;
-        double maxLat = locations.first.latitude;
-        double minLng = locations.first.longitude;
-        double maxLng = locations.first.longitude;
+        print('Multiple today\'s pending locations, calculating bounds...');
+        double minLat = todaysPendingLocations.first.latitude;
+        double maxLat = todaysPendingLocations.first.latitude;
+        double minLng = todaysPendingLocations.first.longitude;
+        double maxLng = todaysPendingLocations.first.longitude;
         
-        for (var location in locations) {
+        for (var location in todaysPendingLocations) {
           minLat = min(minLat, location.latitude);
           maxLat = max(maxLat, location.latitude);
           minLng = min(minLng, location.longitude);
           maxLng = max(maxLng, location.longitude);
+        }
+
+        if (minLat == maxLat || minLng == maxLng) {
+          print('Invalid bounds, centering on first location');
+          _mapController.move(todaysPendingLocations.first, 15.0);
+          return;
         }
         
         final bounds = LatLngBounds(
@@ -362,31 +478,50 @@ class _CollectorMapPageState extends State<CollectorMapPage>
           LatLng(maxLat, maxLng),
         );
         
+        print('Bounds: ${bounds.southWest} to ${bounds.northEast}');
+        
         _mapController.fitCamera(
           CameraFit.bounds(
             bounds: bounds,
             padding: const EdgeInsets.all(80),
           ),
         );
+        
+        print('Map bounds set successfully');
       }
     } catch (e) {
-      print('Error fitting markers in view: $e');
+      print('Error fitting today\'s pending markers in view: $e');
+      if (mounted) {
+        _showErrorSnackBar('Error centering map: ${e.toString()}');
+      }
     }
   }
 
+  // UPDATED: Only allow selection of today's pending notifications
   void _selectNotification(NotificationData notification) {
     if (!mounted) return;
+    
+    // Only allow selection of pending notifications on map
+    if (notification.status != 'Pending') {
+      _showInfoSnackBar('This collection has already been completed');
+      return;
+    }
     
     setState(() => _selectedNotification = notification);
     _cardAnimationController.forward();
     
     try {
-      _mapController.move(
-        LatLng(notification.latitude!, notification.longitude!),
-        16.0,
-      );
+      if (notification.hasLocation) {
+        _mapController.move(
+          LatLng(notification.latitude!, notification.longitude!),
+          16.0,
+        );
+      }
     } catch (e) {
       print('Error moving map to notification: $e');
+      if (mounted) {
+        _showErrorSnackBar('Error navigating to location');
+      }
     }
   }
 
@@ -400,6 +535,8 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   }
 
   Widget _buildNotificationDetailSheet(NotificationData notification) {
+    final todaysCollectedCount = _todaysNotifications.where((n) => n.status == 'Collected').length;
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
       decoration: const BoxDecoration(
@@ -501,11 +638,12 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                     _buildDetailRow(Icons.scale, 'Weight', '${notification.weight} ${notification.weightUnit ?? 'kg'}'),
                   if (notification.address?.isNotEmpty == true)
                     _buildDetailRow(Icons.location_on, 'Address', notification.address!),
-                  _buildDetailRow(
-                    Icons.gps_fixed, 
-                    'Coordinates', 
-                    '${notification.latitude!.toStringAsFixed(6)}, ${notification.longitude!.toStringAsFixed(6)}'
-                  ),
+                  if (notification.hasLocation)
+                    _buildDetailRow(
+                      Icons.gps_fixed, 
+                      'Coordinates', 
+                      '${notification.latitude!.toStringAsFixed(6)}, ${notification.longitude!.toStringAsFixed(6)}'
+                    ),
                   if (notification.locationSource != null)
                     _buildDetailRow(
                       Icons.info, 
@@ -588,229 +726,35 @@ class _CollectorMapPageState extends State<CollectorMapPage>
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: kMainColor, size: 20),
-          const SizedBox(width: 12),
-          Text(
-            '$label:',
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                color: Colors.grey[700],
+          // Add info about today's completed collections not shown on map
+          if (todaysCollectedCount > 0) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green[200]!),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline, color: Colors.green[700], size: 14),
+                  const SizedBox(width: 6),
+                  Text(
+                    '$todaysCollectedCount completed collections today (hidden from map)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
-  }
-
-  Future<void> _markAsCollected(NotificationData notification) async {
-    try {
-      // Create document reference for the notification
-      final docRef = FirebaseFirestore.instance
-          .collection('notify_for_collection')
-          .doc(notification.id);
-
-      // Navigate to AddWeightPage
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddWeightPage(
-            customerName: notification.name,
-            regNo: notification.regNo,
-            docReference: docRef,
-            customerId: notification.customerId,
-          ),
-        ),
-      );
-
-      // If weight was successfully saved (result == true), show success message
-      if (result == true && mounted) {
-        _showSuccessSnackBar('Collection completed successfully!');
-        
-        // Close the selected notification card if it's open
-        if (_selectedNotification?.id == notification.id) {
-          setState(() => _selectedNotification = null);
-          _cardAnimationController.reset();
-        }
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Error opening weight page: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _updateWeight(NotificationData notification) async {
-    try {
-      final docRef = FirebaseFirestore.instance
-          .collection('notify_for_collection')
-          .doc(notification.id);
-
-      final result = await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AddWeightPage(
-            customerName: notification.name,
-            regNo: notification.regNo,
-            docReference: docRef,
-            customerId: notification.customerId,
-          ),
-        ),
-      );
-
-      if (result == true && mounted) {
-        _showSuccessSnackBar('Weight updated successfully!');
-        
-        if (_selectedNotification?.id == notification.id) {
-          setState(() => _selectedNotification = null);
-          _cardAnimationController.reset();
-        }
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        _showErrorSnackBar('Error updating weight: ${e.toString()}');
-      }
-    }
-  }
-
-  Future<void> _removeWeight(NotificationData notification) async {
-    // Show confirmation dialog
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Remove Weight'),
-        content: Text('Are you sure you want to remove the weight for ${notification.name}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Remove', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await FirebaseFirestore.instance
-            .collection('notify_for_collection')
-            .doc(notification.id)
-            .update({
-          'status': 'Pending',
-          'collectedAt': FieldValue.delete(),
-          'collectedBy': FieldValue.delete(),
-          'weight': FieldValue.delete(),
-          'weightUnit': FieldValue.delete(),
-        });
-        
-        if (mounted) {
-          _showSuccessSnackBar('Weight removed successfully');
-          
-          if (_selectedNotification?.id == notification.id) {
-            setState(() => _selectedNotification = null);
-            _cardAnimationController.reset();
-          }
-          Navigator.pop(context);
-        }
-      } catch (e) {
-        if (mounted) {
-          _showErrorSnackBar('Failed to remove weight: ${e.toString()}');
-        }
-      }
-    }
-  }
-
-  void _openInMaps(NotificationData notification) {
-    // Implementation for opening in external maps app
-    // This would typically use url_launcher to open external maps
-    _showInfoSnackBar('External navigation feature coming soon!');
-  }
-
-  Widget _buildPulseAnimation() {
-    return AnimatedBuilder(
-      animation: _pulseAnimationController,
-      builder: (context, child) {
-        final scale = 1.0 + (0.3 * sin(_pulseAnimationController.value * 2 * pi));
-        return Transform.scale(
-          scale: scale,
-          child: Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.orange.withOpacity(0.2 * (2.0 - scale)),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
-    return Column(
-      children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Icon(icon, color: color, size: 24),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  String _calculateTotalWeight() {
-    double total = 0.0;
-    for (var notification in _notifications) {
-      if (notification.weight != null) {
-        total += notification.weight!;
-      }
-    }
-    return total.toStringAsFixed(1);
   }
 
   void _changeTileLayer() {
@@ -906,7 +850,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'Customer Locations',
+          'Today\'s Customer Locations',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: Colors.white,
@@ -929,7 +873,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
             icon: const Icon(Icons.refresh),
             onPressed: _fitMarkersInView,
             color: Colors.white,
-            tooltip: 'Center all markers',
+            tooltip: 'Center today\'s markers',
           ),
         ],
       ),
@@ -988,72 +932,12 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                       ],
                     ),
                     
-                    // Enhanced Statistics Card with Weight Info
+                    // Enhanced Statistics Card
                     Positioned(
                       top: 16,
                       left: 16,
                       right: 16,
-                      child: Card(
-                        elevation: 8,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  _buildStatItem(
-                                    'Total',
-                                    _notifications.length.toString(),
-                                    Icons.location_on,
-                                    kMainColor,
-                                  ),
-                                  _buildStatItem(
-                                    'Pending',
-                                    _notifications.where((n) => n.status == 'Pending').length.toString(),
-                                    Icons.pending,
-                                    Colors.orange,
-                                  ),
-                                  _buildStatItem(
-                                    'Collected',
-                                    _notifications.where((n) => n.status == 'Collected').length.toString(),
-                                    Icons.check_circle,
-                                    Colors.green,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [Colors.blue[50]!, Colors.blue[100]!],
-                                  ),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.scale, color: Colors.blue[700], size: 16),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Total Weight: ${_calculateTotalWeight()} kg',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue[700],
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      child: _buildEnhancedStatsCard(),
                     ),
                     
                     // Selected Notification Card
@@ -1172,23 +1056,397 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   ],
                 ),
       
-      // Floating Action Button for centering map
-      floatingActionButton: _notifications.isNotEmpty
+      // UPDATED: Floating Action Button only shows when there are today's pending locations
+      floatingActionButton: _todaysNotifications.where((n) => n.hasLocation && n.status == 'Pending').isNotEmpty
           ? ScaleTransition(
               scale: _fabScaleAnimation,
               child: FloatingActionButton(
                 onPressed: _fitMarkersInView,
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
+                tooltip: 'Center today\'s pending collections',
                 child: const Icon(Icons.my_location),
               ),
             )
-          : null,
+      
+        : null,
+         bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.2),
+                spreadRadius: 1,
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: BottomNavigationBar(
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: kMainColor,
+            unselectedItemColor: Colors.grey,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            type: BottomNavigationBarType.fixed,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_rounded, size: 24),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map_sharp, size: 24),
+                label: 'Map',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history, size: 24),
+                label: 'History',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person, size: 24),
+                label: 'Profile',
+              ),
+            ],
+          ),
+        ),
     );
+  }
+
+  Widget _buildDetailRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: kMainColor, size: 20),
+          const SizedBox(width: 12),
+          Text(
+            '$label:',
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _markAsCollected(NotificationData notification) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('notify_for_collection')
+          .doc(notification.id);
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddWeightPage(
+            customerName: notification.name,
+            regNo: notification.regNo,
+            docReference: docRef,
+            customerId: notification.customerId,
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        _showSuccessSnackBar('Collection completed successfully!');
+        
+        if (_selectedNotification?.id == notification.id) {
+          setState(() => _selectedNotification = null);
+          _cardAnimationController.reset();
+        }
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Error opening weight page: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _updateWeight(NotificationData notification) async {
+    try {
+      final docRef = FirebaseFirestore.instance
+          .collection('notify_for_collection')
+          .doc(notification.id);
+
+      final result = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => AddWeightPage(
+            customerName: notification.name,
+            regNo: notification.regNo,
+            docReference: docRef,
+            customerId: notification.customerId,
+          ),
+        ),
+      );
+
+      if (result == true && mounted) {
+        _showSuccessSnackBar('Weight updated successfully!');
+        
+        if (_selectedNotification?.id == notification.id) {
+          setState(() => _selectedNotification = null);
+          _cardAnimationController.reset();
+        }
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar('Error updating weight: ${e.toString()}');
+      }
+    }
+  }
+
+  Future<void> _removeWeight(NotificationData notification) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Weight'),
+        content: Text('Are you sure you want to remove the weight for ${notification.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('notify_for_collection')
+            .doc(notification.id)
+            .update({
+          'status': 'Pending',
+          'collectedAt': FieldValue.delete(),
+          'collectedBy': FieldValue.delete(),
+          'weight': FieldValue.delete(),
+          'weightUnit': FieldValue.delete(),
+        });
+        
+        if (mounted) {
+          _showSuccessSnackBar('Weight removed successfully');
+          
+          if (_selectedNotification?.id == notification.id) {
+            setState(() => _selectedNotification = null);
+            _cardAnimationController.reset();
+          }
+          Navigator.pop(context);
+        }
+      } catch (e) {
+        if (mounted) {
+          _showErrorSnackBar('Failed to remove weight: ${e.toString()}');
+        }
+      }
+    }
+  }
+
+  void _openInMaps(NotificationData notification) {
+    _showInfoSnackBar('External navigation feature coming soon!');
+  }
+
+  Widget _buildPulseAnimation() {
+    return AnimatedBuilder(
+      animation: _pulseAnimationController,
+      builder: (context, child) {
+        final scale = 1.0 + (0.3 * sin(_pulseAnimationController.value * 2 * pi));
+        return Transform.scale(
+          scale: scale,
+          child: Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.orange.withOpacity(0.2 * (2.0 - scale)),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return Column(
+      children: [
+        Container(
+          width: 50,
+          height: 50,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(icon, color: color, size: 24),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // UPDATED: Calculate today's total weight only
+  String _calculateTodaysTotalWeight() {
+    double total = 0.0;
+    for (var notification in _todaysNotifications) {
+      if (notification.weight != null) {
+        total += notification.weight!;
+      }
+    }
+    return total.toStringAsFixed(1);
+  }
+
+  // UPDATED: Enhanced statistics card showing only today's data
+  Widget _buildEnhancedStatsCard() {
+    final todaysPendingCount = _todaysNotifications.where((n) => n.status == 'Pending').length;
+    final todaysCollectedCount = _todaysNotifications.where((n) => n.status == 'Collected').length;
+    final todaysPendingOnMapCount = _todaysNotifications.where((n) => n.hasLocation && n.status == 'Pending').length;
+    
+    return Card(
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Today indicator
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [kMainColor.withOpacity(0.1), kMainColor.withOpacity(0.2)],
+                ),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: kMainColor),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.today, color: kMainColor, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Today\'s Collections',
+                    style: TextStyle(
+                      color: kMainColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatItem(
+                  'On Map',
+                  todaysPendingOnMapCount.toString(),
+                  Icons.location_on,
+                  kMainColor,
+                ),
+                _buildStatItem(
+                  'Pending',
+                  todaysPendingCount.toString(),
+                  Icons.pending,
+                  Colors.orange,
+                ),
+                _buildStatItem(
+                  'Completed',
+                  todaysCollectedCount.toString(),
+                  Icons.check_circle,
+                  Colors.green,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.blue[50]!, Colors.blue[100]!],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.scale, color: Colors.blue[700], size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Today\'s Total Weight: ${_calculateTodaysTotalWeight()} kg',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+ void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/collector_home');
+        break;
+      case 1:
+        Navigator.pushNamed(context, '/collector_map');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/collector_history');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/collector_profile');
+        break;
+    }
   }
 }
 
-// NotificationData model class
+// UPDATED NotificationData class with createdAt field
 class NotificationData {
   final String id;
   final String name;
@@ -1204,6 +1462,7 @@ class NotificationData {
   final String? locationSource;
   final double? weight;
   final String? weightUnit;
+  final DateTime? createdAt; // Add this field
 
   NotificationData({
     required this.id,
@@ -1220,27 +1479,125 @@ class NotificationData {
     this.locationSource,
     this.weight,
     this.weightUnit,
+    this.createdAt, // Add this parameter
   });
 
   bool get hasLocation => latitude != null && longitude != null;
 
   factory NotificationData.fromFirestore(String id, Map<String, dynamic> data) {
+    // Enhanced location extraction with multiple fallback strategies
+    double? lat, lng;
+    String? address, locationSource;
+
+    // Strategy 1: Direct latitude/longitude fields
+    lat = _parseLocationValue(data['latitude']);
+    lng = _parseLocationValue(data['longitude']);
+    
+    // Strategy 2: Check nested location object
+    if ((lat == null || lng == null) && data['location'] != null) {
+      final locationData = data['location'];
+      if (locationData is Map<String, dynamic>) {
+        lat ??= _parseLocationValue(locationData['latitude']);
+        lng ??= _parseLocationValue(locationData['longitude']);
+        address = locationData['address']?.toString();
+        locationSource = locationData['source']?.toString();
+      }
+    }
+    
+    // Strategy 3: Check for coordinate arrays
+    if ((lat == null || lng == null) && data['coordinates'] != null) {
+      final coords = data['coordinates'];
+      if (coords is List && coords.length >= 2) {
+        lat ??= _parseLocationValue(coords[0]);
+        lng ??= _parseLocationValue(coords[1]);
+      }
+    }
+    
+    // Strategy 4: Check GeoPoint (Firestore's native location type)
+    if ((lat == null || lng == null) && data['geopoint'] != null) {
+      final geoPoint = data['geopoint'];
+      if (geoPoint is GeoPoint) {
+        lat = geoPoint.latitude;
+        lng = geoPoint.longitude;
+      }
+    }
+
+    // Extract other location-related data
+    address ??= data['address']?.toString();
+    locationSource ??= data['locationSource']?.toString();
+
+    // Extract createdAt timestamp
+    DateTime? createdAt;
+    if (data['createdAt'] is Timestamp) {
+      createdAt = (data['createdAt'] as Timestamp).toDate();
+    } else if (data['createdAt'] is String) {
+      try {
+        createdAt = DateTime.parse(data['createdAt']);
+      } catch (e) {
+        print('Error parsing createdAt string: $e');
+      }
+    }
+
     return NotificationData(
       id: id,
-      name: data['customerName'] ?? 'Unknown',
-      regNo: data['regNo'] ?? 'N/A',
-      customerId: data['customerId'] ?? '',
-      status: data['status'] ?? 'Pending',
-      time: data['time'] ?? '',
-      date: data['date'] ?? '',
+      name: data['customerName']?.toString() ?? data['name']?.toString() ?? 'Unknown',
+      regNo: data['regNo']?.toString() ?? 'N/A',
+      customerId: data['customerId']?.toString() ?? '',
+      status: data['status']?.toString() ?? 'Pending',
+      time: data['time']?.toString() ?? '',
+      date: data['date']?.toString() ?? '',
       timeAgo: _formatTimeAgo(data['createdAt']),
-      latitude: data['latitude']?.toDouble(),
-      longitude: data['longitude']?.toDouble(),
-      address: data['address'],
-      locationSource: data['locationSource'],
-      weight: data['weight']?.toDouble(),
-      weightUnit: data['weightUnit'],
+      latitude: lat,
+      longitude: lng,
+      address: address,
+      locationSource: locationSource,
+      weight: _parseToDouble(data['weight']),
+      weightUnit: data['weightUnit']?.toString() ?? 'kg',
+      createdAt: createdAt, // Add this field
     );
+  }
+
+  static double? _parseLocationValue(dynamic value) {
+    if (value == null) return null;
+    
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    
+    if (value is String && value.trim().isNotEmpty) {
+      try {
+        final cleaned = value.trim();
+        return double.parse(cleaned);
+      } catch (e) {
+        print('Error parsing location string "$value": $e');
+        return null;
+      }
+    }
+    
+    print('Unhandled location value type: ${value.runtimeType} = $value');
+    return null;
+  }
+
+  static double? _parseToDouble(dynamic value) {
+    if (value == null) return null;
+    
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
+    
+    if (value is String && value.trim().isNotEmpty) {
+      try {
+        String cleanedValue = value.trim().replaceAll(RegExp(r'[^\d.-]'), '');
+        if (cleanedValue.isEmpty) return null;
+        
+        return double.parse(cleanedValue);
+      } catch (e) {
+        print('Error parsing string to double: "$value" : $e');
+        return null;
+      }
+    }
+    
+    return null;
   }
 
   static String _formatTimeAgo(dynamic timestamp) {
@@ -1252,6 +1609,8 @@ class NotificationData {
         createdAt = timestamp.toDate();
       } else if (timestamp is DateTime) {
         createdAt = timestamp;
+      } else if (timestamp is String) {
+        createdAt = DateTime.parse(timestamp);
       } else {
         return 'Unknown time';
       }
@@ -1271,6 +1630,7 @@ class NotificationData {
         return '${(difference.inDays / 30).floor()} months ago';
       }
     } catch (e) {
+      print('Error formatting time: $e');
       return 'Unknown time';
     }
   }
