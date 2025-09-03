@@ -1,4 +1,5 @@
 // manage_users_page.dart
+import 'package:TeaLink/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -20,6 +21,7 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
   
   late TabController _tabController;
   int _currentTabIndex = 0;
+   int _selectedIndex = 2;
 
   @override
   void initState() {
@@ -161,7 +163,7 @@ Future<void> _loadUsers() async {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: Text('User Management', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.indigo[600],
+        backgroundColor: kMainColor,
         foregroundColor: Colors.white,
         elevation: 0,
         bottom: _isAdmin && !_isLoading && _errorMessage == null 
@@ -193,6 +195,60 @@ Future<void> _loadUsers() async {
         ],
       ),
       body: _buildBody(),
+       bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 15,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+          child: BottomNavigationBar(
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: kMainColor,
+            unselectedItemColor: Colors.grey,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            type: BottomNavigationBarType.fixed,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_rounded, size: 26),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map_sharp, size: 26),
+                label: 'Payment',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history, size: 26),
+                label: 'Users',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person, size: 26),
+                label: 'Setting',
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -937,6 +993,27 @@ Future<void> _loadUsers() async {
         ],
       ),
     );
+  }
+
+ void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+
+    switch (index) {
+      case 0:
+        // Already on home 
+        Navigator.pushNamed(context, '/admin_home');
+        break;
+      
+      case 1:
+        Navigator.pushNamed(context, '/admin_payments');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/admin_users');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/admin_settings');
+        break;
+    }
   }
 }
 

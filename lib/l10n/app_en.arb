@@ -1,0 +1,10 @@
+{
+  "@@locale": "en",
+  "welcome": "Welcome",
+  "onboarding1Title": "Track weekly\nharvest & earnings",
+  "onboarding1Description": "See how much tea you’ve collected and\nhow much you’ve earned each\nweek—clearly and easily.",
+  "onboarding2Title": "View Collector\nDetails & Activity",
+  "onboarding2Description": "Quickly see who your collector is, their\ncontact info, and their recent collection\nupdates.",
+  "next": "Next",
+  "getStarted": "Get Started"
+}

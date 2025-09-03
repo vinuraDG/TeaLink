@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -28,12 +29,20 @@ class _ProfilePageState extends State<ProfilePage> {
   String? address;
   double? latitude;
   double? longitude;
+  String? selectedLanguage; // Added for language preference
   int _selectedIndex = 3;
 
   late TextEditingController nameController;
   late TextEditingController phoneController;
   bool isLoading = true;
   bool _showQR = false;
+
+  // Language options
+  final Map<String, String> _languageOptions = {
+    'en': 'English',
+    'si': 'සිංහල',
+    'ta': 'தமிழ்',
+  };
 
   @override
   void initState() {
@@ -82,7 +91,7 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       debugPrint("Error loading profile: $e");
       _generateFallbackRegistrationNumber();
-      _showErrorSnackBar('Error loading profile. Please check your internet connection.');
+      _showErrorSnackBar(AppLocalizations.of(context)!.failedToSaveLocation);
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -102,6 +111,7 @@ class _ProfilePageState extends State<ProfilePage> {
       'longitude': null,
       'profileImage': '',
       'registrationNumber': regNum,
+      'language': 'en', // Default language
       'createdAt': FieldValue.serverTimestamp(),
     });
 
@@ -112,6 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
         phoneController.text = '';
         profileImageUrl = '';
         address = '';
+        selectedLanguage = 'en';
       });
     }
   }
@@ -128,6 +139,7 @@ class _ProfilePageState extends State<ProfilePage> {
         address = data['location'] ?? '';
         latitude = data['latitude'];
         longitude = data['longitude'];
+        selectedLanguage = data['language'] ?? 'en'; // Load language preference
       });
     }
 
@@ -141,6 +153,19 @@ class _ProfilePageState extends State<ProfilePage> {
       if (mounted) {
         setState(() {
           registrationNumber = regNum;
+        });
+      }
+    }
+
+    // If language is not set, set default and update Firestore
+    if (selectedLanguage == null || selectedLanguage!.isEmpty) {
+      await _firestore.collection('users').doc(user.uid).update({
+        'language': 'en',
+      });
+
+      if (mounted) {
+        setState(() {
+          selectedLanguage = 'en';
         });
       }
     }
@@ -228,6 +253,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _pickImage() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       final pickedFile = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -238,7 +264,7 @@ class _ProfilePageState extends State<ProfilePage> {
       
       if (pickedFile == null) return;
 
-      _showLoadingSnackBar('Uploading image...');
+      _showLoadingSnackBar(l10n.uploadingImage);
 
       File file = File(pickedFile.path);
       final ref = FirebaseStorage.instance.ref().child('profilePics/${user.uid}.jpg');
@@ -254,14 +280,15 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() => profileImageUrl = downloadUrl);
       
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showSuccessSnackBar('Profile image updated successfully!');
+      _showSuccessSnackBar(l10n.profileImageUpdatedSuccessfully);
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorSnackBar('Failed to upload image: $e');
+      _showErrorSnackBar('${l10n.failedToUploadImage}: $e');
     }
   }
 
   Future<void> _pickLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       LatLng? picked = await Navigator.push<LatLng>(
         context,
@@ -271,7 +298,7 @@ class _ProfilePageState extends State<ProfilePage> {
       );
 
       if (picked != null) {
-        _showLoadingSnackBar('Getting location details...');
+        _showLoadingSnackBar(l10n.gettingLocationDetails);
         
         try {
           List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -303,7 +330,7 @@ class _ProfilePageState extends State<ProfilePage> {
           });
 
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          _showSuccessSnackBar('Location updated successfully!');
+          _showSuccessSnackBar(l10n.locationUpdatedSuccessfully);
         } catch (e) {
           String coordsAddress = 'Location: ${picked.latitude.toStringAsFixed(6)}, ${picked.longitude.toStringAsFixed(6)}';
           
@@ -314,23 +341,92 @@ class _ProfilePageState extends State<ProfilePage> {
           });
 
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          _showSuccessSnackBar('Location coordinates saved!');
+          _showSuccessSnackBar(l10n.locationCoordinatesSaved);
         }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorSnackBar('Failed to pick location: $e');
+      _showErrorSnackBar('${l10n.failedToPickLocation}: $e');
     }
   }
 
+  // New method for changing language
+  void _changeLanguage() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.language, color: kMainColor, size: 24),
+              const SizedBox(width: 8),
+              Text(l10n.selectLanguage, 
+                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _languageOptions.entries.map((entry) {
+              return RadioListTile<String>(
+                title: Text(entry.value),
+                value: entry.key,
+                groupValue: selectedLanguage,
+                activeColor: kMainColor,
+                onChanged: (value) {
+                  setState(() {
+                    selectedLanguage = value;
+                  });
+                  Navigator.pop(ctx);
+                  _updateLanguageInFirestore(value!);
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // New method to update language in Firestore
+Future<void> _updateLanguageInFirestore(String languageCode) async {
+  final l10n = AppLocalizations.of(context)!;
+  try {
+    _showLoadingSnackBar(l10n.updatingLanguage);
+    
+    // Update field names to match security rules
+    await _firestore.collection('users').doc(user.uid).update({
+      'preferredLanguage': languageCode,  // Changed from 'language'
+      'languageUpdatedAt': FieldValue.serverTimestamp(),  // Changed from 'updatedAt'
+    });
+    
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    _showSuccessSnackBar(l10n.languageUpdatedSuccessfully);
+    
+    // Note: You might want to trigger a locale change here
+    // This depends on how your app handles locale changes
+  } catch (e) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    _showErrorSnackBar('${l10n.failedToUpdateLanguage}: $e');
+  }
+}
+
   Future<void> _saveProfile() async {
+    final l10n = AppLocalizations.of(context)!;
     if (nameController.text.trim().isEmpty) {
-      _showErrorSnackBar('Name cannot be empty');
+      _showErrorSnackBar(l10n.nameCannotBeEmpty);
       return;
     }
 
     try {
-      _showLoadingSnackBar('Saving profile...');
+      _showLoadingSnackBar(l10n.savingProfile);
 
       await _firestore.collection('users').doc(user.uid).update({
         'name': nameController.text.trim(),
@@ -339,18 +435,20 @@ class _ProfilePageState extends State<ProfilePage> {
         'location': address ?? '',
         'latitude': latitude,
         'longitude': longitude,
+        'language': selectedLanguage ?? 'en', // Include language in profile save
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showSuccessSnackBar('Profile updated successfully!');
+      _showSuccessSnackBar(l10n.profileUpdatedSuccessfully);
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showErrorSnackBar('Failed to update profile: $e');
+      _showErrorSnackBar('${l10n.failedToUpdateProfile}: $e');
     }
   }
 
   Future<void> _deleteAccount() async {
+    final l10n = AppLocalizations.of(context)!;
     final passwordController = TextEditingController();
     
     try {
@@ -363,15 +461,15 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Icon(Icons.warning, color: Colors.red[600], size: 28),
               const SizedBox(width: 8),
-              const Text("Delete Account", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              Text(l10n.deleteAccountTitle, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             ],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                "This action cannot be undone. Please enter your password to confirm.",
+               Text(
+               l10n.deleteAccountWarning,
                 style: TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
@@ -383,8 +481,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: TextField(
                   controller: passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: "Enter your password",
+                  decoration:  InputDecoration(
+                    hintText: l10n.enterYourPassword,
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.all(16),
                     prefixIcon: Icon(Icons.lock_outline),
@@ -399,14 +497,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 passwordController.dispose();
                 Navigator.pop(ctx, false);
               },
-              child: const Text("Cancel"),
+              child:  Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx, true);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child: const Text("Delete Account", style: TextStyle(color: Colors.white)),
+              child:  Text(l10n.deleteAccount, style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -417,7 +515,7 @@ class _ProfilePageState extends State<ProfilePage> {
         return;
       }
 
-      _showLoadingSnackBar('Deleting account...');
+      _showLoadingSnackBar(l10n.deletingAccount);
 
       final cred = EmailAuthProvider.credential(
         email: user.email!,
@@ -444,11 +542,12 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       passwordController.dispose();
-      _showErrorSnackBar('Error deleting account: $e');
+      _showErrorSnackBar('${l10n.errorDeletingAccount}: $e');
     }
   }
 
   void _editName() {
+    final l10n = AppLocalizations.of(context)!;
     final tempController = TextEditingController(text: nameController.text);
     
     showDialog(
@@ -460,7 +559,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Icon(Icons.edit, color: kMainColor, size: 24),
               const SizedBox(width: 8),
-              const Text("Edit Name", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+               Text(l10n.editName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             ],
           ),
           content: Container(
@@ -470,8 +569,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             child: TextField(
               controller: tempController,
-              decoration: const InputDecoration(
-                hintText: "Enter your name",
+              decoration:  InputDecoration(
+                hintText: l10n.enterYourName,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(16),
                 prefixIcon: Icon(Icons.person_outline),
@@ -484,7 +583,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 tempController.dispose();
                 Navigator.pop(ctx);
               },
-              child: const Text("Cancel"),
+              child:  Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -500,7 +599,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
               ),
-              child: const Text("Save"),
+              child:  Text(l10n.save),
             ),
           ],
         );
@@ -509,6 +608,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _editPhone() {
+    final l10n = AppLocalizations.of(context)!;
     final tempController = TextEditingController(text: phoneController.text);
     
     showDialog(
@@ -520,7 +620,7 @@ class _ProfilePageState extends State<ProfilePage> {
             children: [
               Icon(Icons.phone, color: kMainColor, size: 24),
               const SizedBox(width: 8),
-              const Text("Edit Phone Number", style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+               Text(l10n.editPhoneNumber, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             ],
           ),
           content: Container(
@@ -531,8 +631,8 @@ class _ProfilePageState extends State<ProfilePage> {
             child: TextField(
               controller: tempController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: "Enter your phone number",
+              decoration:  InputDecoration(
+                hintText: l10n.enterYourPhoneNumber,
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.all(16),
                 prefixIcon: Icon(Icons.phone_outlined),
@@ -545,7 +645,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 tempController.dispose();
                 Navigator.pop(ctx);
               },
-              child: const Text("Cancel"),
+              child:  Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -559,7 +659,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
               ),
-              child: const Text("Save"),
+              child:  Text(l10n.save),
             ),
           ],
         );
@@ -630,6 +730,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading) {
       return Scaffold(
         backgroundColor: kWhite,
@@ -640,7 +741,7 @@ class _ProfilePageState extends State<ProfilePage> {
               CircularProgressIndicator(color: kMainColor),
               const SizedBox(height: 16),
               Text(
-                "Loading your profile...",
+                l10n.loadingYourProfile,
                 style: TextStyle(
                   color: Colors.grey[600],
                   fontSize: 16,
@@ -683,7 +784,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       _buildProfileImage(),
                       const SizedBox(height: 12),
                       Text(
-                        nameController.text.isNotEmpty ? nameController.text : "Welcome!",
+                        nameController.text.isNotEmpty ? nameController.text : l10n.welcome,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -702,30 +803,42 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader("Personal Information", Icons.person),
+                  _buildSectionHeader(l10n.personalInformation, Icons.person),
                   const SizedBox(height: 12),
                   _buildInfoCard([
-                    _buildEditableField("Full Name", nameController.text, Icons.person, _editName),
-                    _buildReadOnlyField("Email Address", user.email ?? '', Icons.email),
-                    _buildEditableField("Phone Number", phoneController.text.isEmpty ? "Add phone number" : phoneController.text, Icons.phone, _editPhone),
+                    _buildEditableField(l10n.fullName, nameController.text, Icons.person, _editName),
+                    _buildReadOnlyField(l10n.emailAddress, user.email ?? '', Icons.email),
+                    _buildEditableField(l10n.phoneNumber, phoneController.text.isEmpty ? "Add phone number" : phoneController.text, Icons.phone, _editPhone),
                   ]),
 
                   const SizedBox(height: 24),
-                  _buildSectionHeader("Location & QR Code", Icons.location_on),
+                  _buildSectionHeader(l10n.locationAndQRCode, Icons.location_on),
                   const SizedBox(height: 12),
                   _buildInfoCard([
                     _buildEditableField(
-                      "Current Location",
-                      address?.isEmpty == true ? "Add your location" : address ?? "Add your location",
+                     l10n.currentLocation,
+                      address?.isEmpty == true ? l10n.addYourLocation : address ?? l10n.addYourLocation,
                       Icons.location_on,
                       _pickLocation
                     ),
                     _buildReadOnlyField(
-                      "Registration ID",
+                      l10n.registrationID,
                       registrationNumber?.isNotEmpty == true
                           ? registrationNumber!
-                          : "Generating...",
+                          : l10n.generating,
                       Icons.qr_code
+                    ),
+                  ]),
+
+                  const SizedBox(height: 24),
+                  _buildSectionHeader(l10n.appSettings, Icons.settings),
+                  const SizedBox(height: 12),
+                  _buildInfoCard([
+                    _buildEditableField(
+                      l10n.language,
+                      _languageOptions[selectedLanguage] ?? 'English',
+                      Icons.language,
+                      _changeLanguage
                     ),
                   ]),
 
@@ -761,11 +874,11 @@ class _ProfilePageState extends State<ProfilePage> {
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.trending_up_rounded), label: 'Trends'),
-            BottomNavigationBarItem(icon: Icon(Icons.payment_rounded), label: 'Payments'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
+          items:  [
+            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: l10n.home),
+            BottomNavigationBarItem(icon: Icon(Icons.trending_up_rounded), label:l10n.trends),
+            BottomNavigationBarItem(icon: Icon(Icons.payment_rounded), label: l10n.payments),
+            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: l10n.profile),
           ],
         ),
       ),
@@ -826,6 +939,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildEditableField(String label, String value, IconData icon, VoidCallback? onTap) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
@@ -845,7 +959,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       subtitle: Text(
-        value.isEmpty ? "Tap to add" : value,
+        value.isEmpty ? l10n.tapToAdd : value,
         style: TextStyle(
           fontSize: 16,
           color: value.isEmpty ? Colors.grey[500] : Colors.black87,
@@ -896,6 +1010,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildQRSection() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -920,14 +1035,14 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               child: Icon(Icons.qr_code, color: kMainColor, size: 20),
             ),
-            title: const Text(
-              "My QR Code",
+            title:  Text(
+              l10n.myQRCode,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
               ),
             ),
-            subtitle: const Text("Share this QR code for easy identification"),
+            subtitle:  Text(l10n.shareQRCodeDescription),
             trailing: IconButton(
               icon: Icon(_showQR ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
               onPressed: () => setState(() => _showQR = !_showQR),
@@ -972,6 +1087,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildActionButtons() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         SizedBox(
@@ -987,13 +1103,13 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               elevation: 2,
             ),
-            child: const Row(
+            child:  Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.save, size: 20),
                 SizedBox(width: 8),
                 Text(
-                  "Save Changes",
+                  l10n.saveChanges,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -1016,13 +1132,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child: const Row(
+            child:  Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(Icons.delete_outline, size: 20),
                 SizedBox(width: 8),
                 Text(
-                  "Delete Account",
+                  l10n.deleteAccount,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
@@ -1059,10 +1175,11 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Choose Location",
+        title:  Text(
+          l10n.chooseLocation,
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
@@ -1089,7 +1206,7 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
-              child: const Text("Confirm", style: TextStyle(fontWeight: FontWeight.w600)),
+              child:  Text(l10n.confirm, style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           )
         ],
@@ -1164,7 +1281,7 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: "Search for a location...",
+                  hintText: l10n.searchForLocation,
                   prefixIcon: _isSearching
                       ? const Padding(
                           padding: EdgeInsets.all(12.0),
@@ -1233,9 +1350,9 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
                   children: [
                     Icon(Icons.info_outline, color: kMainColor),
                     const SizedBox(width: 12),
-                    const Expanded(
+                     Expanded(
                       child: Text(
-                        "Tap on the map to select your location",
+                        l10n.tapToSelectLocation,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -1272,8 +1389,8 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
                       children: [
                         Icon(Icons.location_on, color: kMainColor),
                         const SizedBox(width: 8),
-                        const Text(
-                          "Selected Location",
+                         Text(
+                          l10n.selectedLocation,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1300,6 +1417,7 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
   }
 
   Future<void> _searchLocation(String query) async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSearching = true;
     });
@@ -1316,13 +1434,13 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
           selectedPosition = latLng;
         });
 
-        _showSuccessSnackBar('Location found!');
+        _showSuccessSnackBar(l10n.locationFound);
       } else {
-        _showErrorSnackBar('Location not found. Try a different search term.');
+        _showErrorSnackBar(l10n.locationNotFound);
       }
     } catch (e) {
       debugPrint('Search error: $e');
-      _showErrorSnackBar('Failed to search location. Please try again.');
+      _showErrorSnackBar(l10n.failedToSearchLocation);
     } finally {
       setState(() {
         _isSearching = false;
@@ -1331,6 +1449,7 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
   }
 
   Future<void> _getCurrentLocation() async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -1368,13 +1487,13 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
       });
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      _showSuccessSnackBar('Current location found!');
+      _showSuccessSnackBar(l10n.currentLocationFound);
     } catch (e) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       String errorMessage = 'Failed to get current location';
 
       if (e.toString().contains('timeout')) {
-        errorMessage = 'Location request timed out. Please try again.';
+        errorMessage = l10n.locationRequestTimedOut;
       } else if (e.toString().contains('permission')) {
         errorMessage = 'Location permission denied';
       } else if (e.toString().contains('service')) {
@@ -1387,6 +1506,7 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
   }
 
   void _showLocationServiceDisabledDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -1395,14 +1515,14 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child:  Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await Geolocator.openLocationSettings();
             },
-            child: const Text('Open Settings'),
+            child:  Text(l10n.openSettings),
           ),
         ],
       ),
@@ -1410,22 +1530,23 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
   }
 
   void _showPermissionDeniedDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Location Permission Required'),
-        content: const Text('This feature needs location permission to work properly.'),
+        content:  Text(l10n.locationPermissionRequired),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child:  Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               _getCurrentLocation();
             },
-            child: const Text('Retry'),
+            child:  Text(l10n.retry),
           ),
         ],
       ),
@@ -1433,22 +1554,23 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
   }
 
   void _showPermissionPermanentlyDeniedDialog() {
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Location Permission Denied'),
-        content: const Text('Location permission has been permanently denied. Please enable it in app settings.'),
+        content:  Text(l10n.locationPermissionPermanentlyDenied),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child:  Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await Geolocator.openAppSettings();
             },
-            child: const Text('Open Settings'),
+            child:  Text(l10n.enableInAppSettings),
           ),
         ],
       ),

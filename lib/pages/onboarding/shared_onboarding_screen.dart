@@ -40,7 +40,7 @@ class SharedOnboardingScreen extends StatelessWidget {
                   title,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    fontSize: 36,
+                    fontSize: 25,
                     color: kBlack,
                     fontWeight: FontWeight.w800,
                   ),

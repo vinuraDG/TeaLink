@@ -1,3 +1,4 @@
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -9,6 +10,7 @@ import 'package:TeaLink/pages/users/admin_dashboard.dart';
 import 'package:TeaLink/pages/users/collector_dashboard.dart';
 import 'package:TeaLink/pages/users/customer_dashboard.dart';
 import 'package:TeaLink/widgets/session_manager.dart';
+
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -22,7 +24,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   bool _isLoading = false;
   bool _isPasswordVisible = false;
   late AnimationController _animationController;
@@ -43,7 +45,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
-    
+
     _animationController.forward();
   }
 
@@ -64,7 +66,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       );
       return;
     }
-    
+
     try {
       await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
       _showSnackBar(
@@ -101,9 +103,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   Future<void> _signInWithEmail() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() => _isLoading = true);
-    
+
     try {
       UserCredential userCredential = await _auth.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
@@ -143,7 +145,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       } else if (e.toString().contains('invalid-email')) {
         errorMessage = "Please enter a valid email address.";
       }
-      
+
       _showSnackBar(errorMessage, Colors.red[600]!, Icons.error);
     } finally {
       setState(() => _isLoading = false);
@@ -152,7 +154,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   Future<void> _signInWithGoogle() async {
     setState(() => _isLoading = true);
-    
+
     try {
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
@@ -235,15 +237,17 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: kMainColor,
         elevation: 0,
-        title: const Text(
-          "LOGIN",
-          style: TextStyle(
-            fontSize: 25,
+        title: Text(
+          loc.loginTitle,
+          style: const TextStyle(
+            fontSize: 23,
             fontWeight: FontWeight.w900,
             color: kWhite,
           ),
@@ -264,7 +268,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const SizedBox(height: 40),
-                    
+
                     // Welcome Section
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -284,16 +288,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'Welcome to TeaLink',
+                            loc.welcomeToTeaLink,
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 25,
                               fontWeight: FontWeight.bold,
                               color: kGrey,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Sign in to your account',
+                            loc.signInToAccount,
                             style: TextStyle(
                               fontSize: 16,
                               color: kGrey,
@@ -302,9 +306,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 40),
-                    
+
                     // Login Form Container
                     Container(
                       padding: const EdgeInsets.all(24),
@@ -328,7 +332,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
+                                return loc.enterEmail;
                               }
                               if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
                                 return 'Please enter a valid email';
@@ -336,8 +340,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               return null;
                             },
                             decoration: InputDecoration(
-                              labelText: 'Email',
-                              hintText: 'Enter your email',
+                              labelText: loc.email,
+                              hintText: loc.enterEmail,
                               prefixIcon: Icon(Icons.email_outlined, color: Colors.green[600]),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
@@ -355,16 +359,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               fillColor: Colors.grey[50],
                             ),
                           ),
-                          
+
                           const SizedBox(height: 20),
-                          
+
                           // Password Field
                           TextFormField(
                             controller: _passwordController,
                             obscureText: !_isPasswordVisible,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
+                                return loc.enterPassword;
                               }
                               if (value.length < 6) {
                                 return 'Password must be at least 6 characters';
@@ -372,8 +376,8 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               return null;
                             },
                             decoration: InputDecoration(
-                              labelText: 'Password',
-                              hintText: 'Enter your password',
+                              labelText: loc.passwordField,
+                              hintText: loc.enterPassword,
                               prefixIcon: Icon(Icons.lock_outlined, color: Colors.green[600]),
                               suffixIcon: IconButton(
                                 icon: Icon(
@@ -402,14 +406,14 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               fillColor: Colors.grey[50],
                             ),
                           ),
-                          
+
                           // Forgot Password
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
                               onPressed: _resetPassword,
                               child: Text(
-                                "Forgot password?",
+                                loc.forgotPassword,
                                 style: TextStyle(
                                   color: kMainColor,
                                   fontWeight: FontWeight.w500,
@@ -417,11 +421,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               ),
                             ),
                           ),
-                          
+
                           const SizedBox(height: 10),
-                          
+
                           // Sign In Button
-                          Container(
+                          SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
@@ -442,9 +446,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                         strokeWidth: 2,
                                       ),
                                     )
-                                  : const Text(
-                                      'Sign In',
-                                      style: TextStyle(
+                                  : Text(
+                                      loc.signInButton,
+                                      style: const TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
                                         color: kWhite,
@@ -455,9 +459,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Divider
                     Row(
                       children: [
@@ -465,7 +469,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            'OR',
+                            loc.or,
                             style: TextStyle(
                               color: kGrey,
                               fontWeight: FontWeight.w500,
@@ -475,11 +479,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         Expanded(child: Divider(color: Colors.grey[400])),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Google Sign In Button
-                    Container(
+                    SizedBox(
                       width: double.infinity,
                       height: 56,
                       child: OutlinedButton.icon(
@@ -494,9 +498,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                                 'assets/images/Google_Logo.jpg',
                                 height: 24,
                               ),
-                        label: const Text(
-                          'Continue with Google',
-                          style: TextStyle(
+                        label: Text(
+                          loc.continueWithGoogle,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -511,9 +515,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         ),
                       ),
                     ),
-                    
+
                     const SizedBox(height: 30),
-                    
+
                     // Sign Up Link
                     Container(
                       padding: const EdgeInsets.all(20),
@@ -526,7 +530,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            "Don't have an account? ",
+                            loc.dontHaveAccount,
                             style: TextStyle(
                               color: kGrey,
                               fontSize: 16,
@@ -540,9 +544,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               );
                             },
                             child: Text(
-                              "Sign up here",
+                              loc.signUpHere,
                               style: TextStyle(
-                                color:kMainColor,
+                                color: kMainColor,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -551,7 +555,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
                   ],
                 ),

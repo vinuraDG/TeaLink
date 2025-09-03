@@ -1,3 +1,4 @@
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -5,6 +6,7 @@ import 'package:TeaLink/constants/colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:TeaLink/pages/onboarding_screen.dart';
 import 'package:TeaLink/pages/option_page.dart';
+
 
 class UserRegistrationScreen extends StatefulWidget {
   const UserRegistrationScreen({super.key});
@@ -94,13 +96,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
     final phone = phoneController.text.trim();
 
     try {
-      // 1) Create Auth user first
       final userCred = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      // 2) Do atomic uniqueness + profile write in a transaction
       await _postSignUpTransaction(
         userCred: userCred,
         name: name,
@@ -110,7 +110,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
         role: '',
       );
 
-      // 3) Done
       _showSnackBar(
         "Account created successfully! Welcome to TeaLink!",
         kMainColor!,
@@ -122,7 +121,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
         MaterialPageRoute(builder: (_) => const RoleSelectionPage()),
       );
     } catch (e) {
-      // If something failed, try to clean up the just-created Auth user
       await _safeDeleteCurrentUser();
       
       String errorMessage = "Failed to create account. Please try again.";
@@ -154,7 +152,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
       final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
       if (googleUser == null) {
         setState(() => _isLoading = false);
-        return; // user cancelled
+        return;
       }
 
       final googleAuth = await googleUser.authentication;
@@ -165,7 +163,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
 
       final userCred = await _auth.signInWithCredential(credential);
 
-      // Use same post-signup flow (regNo empty by default)
       await _postSignUpTransaction(
         userCred: userCred,
         name: userCred.user?.displayName ?? '',
@@ -197,9 +194,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
     }
   }
 
-  // ---------------------------
-  // SHARED: ATOMIC POST-SIGNUP
-  // ---------------------------
   Future<void> _postSignUpTransaction({
     required UserCredential userCred,
     required String name,
@@ -213,7 +207,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
 
     final usersRef = db.collection('users').doc(uid);
 
-    // "Index" docs for uniqueness (doc IDs)
     final emailKey = email.trim().toLowerCase();
     final emailRef = db.collection('unique_emails').doc(emailKey);
 
@@ -223,13 +216,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
 
     try {
       await db.runTransaction((tx) async {
-        // Check unique email
         final emailSnap = await tx.get(emailRef);
         if (emailSnap.exists) {
           throw Exception('This email is already registered.');
         }
 
-        // Check unique reg no (if provided)
         if (regRef != null) {
           final regSnap = await tx.get(regRef);
           if (regSnap.exists) {
@@ -237,19 +228,11 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
           }
         }
 
-        // Reserve uniqueness (create the index docs)
-        tx.set(emailRef, {
-          'uid': uid,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
+        tx.set(emailRef, {'uid': uid, 'createdAt': FieldValue.serverTimestamp()});
         if (regRef != null) {
-          tx.set(regRef, {
-            'uid': uid,
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+          tx.set(regRef, {'uid': uid, 'createdAt': FieldValue.serverTimestamp()});
         }
 
-        // Create the user profile
         tx.set(usersRef, {
           'name': name,
           'registrationNumber': registrationNumber,
@@ -260,22 +243,18 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
         });
       });
     } catch (e) {
-      // If the transaction fails, delete the Auth user so we roll back fully.
       await _safeDeleteCurrentUser();
       rethrow;
     }
   }
 
-  // Delete the current user if possible (recently created/reauthenticated)
   Future<void> _safeDeleteCurrentUser() async {
     try {
       final user = _auth.currentUser;
       if (user != null) {
         await user.delete();
       }
-    } catch (_) {
-      // If delete needs recent login or already gone, ignore.
-    }
+    } catch (_) {}
   }
 
   Widget _buildTextField({
@@ -322,14 +301,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
             borderRadius: BorderRadius.circular(15),
             borderSide: BorderSide(color: kMainColor!, width: 2),
           ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: Colors.red[400]!),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: Colors.red[400]!, width: 2),
-          ),
           filled: true,
           fillColor: Colors.grey[50],
         ),
@@ -339,6 +310,8 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
@@ -349,14 +322,14 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => onboardingScreen()),
+              MaterialPageRoute(builder: (context) => OnboardingScreen()),
             );
           },
         ),
-        title: const Text(
-          "SIGN UP",
-          style: TextStyle(
-            fontSize: 25,
+        title: Text(
+          loc.signUpTitle,
+          style: const TextStyle(
+            fontSize: 23,
             fontWeight: FontWeight.w900,
             color: kWhite,
           ),
@@ -374,7 +347,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                 key: _formKey,
                 child: Column(
                   children: [
-                    // Welcome Section
                     Container(
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -385,28 +357,21 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                               color: Colors.green[100],
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(
-                              Icons.person,
-                              size: 50,
-                              color: kMainColor,
-                            ),
+                            child: Icon(Icons.person, size: 50, color: kMainColor),
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            'Join TeaLink Today',
+                            loc.joinTeaLink,
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.grey[800],
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Create your account to get started',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: kGrey,
-                            ),
+                            loc.createAccount,
+                            style: TextStyle(fontSize: 16, color: kGrey),
                           ),
                         ],
                       ),
@@ -414,7 +379,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                     
                     const SizedBox(height: 20),
                     
-                    // Registration Form Container
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -433,42 +397,38 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Personal Information',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: kGrey,
-                            ),
+                            loc.personalInfo,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kGrey),
                           ),
                           const SizedBox(height: 20),
                           
                           _buildTextField(
                             controller: nameController,
-                            label: 'Full Name',
+                            label: loc.fullName,
                             hint: '',
                             prefixIcon: Icons.person_outline,
-                            validator: (v) => (v == null || v.isEmpty) ? 'Please enter your name' : null,
+                            validator: (v) => (v == null || v.isEmpty) ? loc.fullName : null,
                           ),
                           
                           _buildTextField(
                             controller: registrationNumberController,
-                            label: 'Registration Number (Optional)',
+                            label: loc.regNo,
                             hint: '',
                             prefixIcon: Icons.badge_outlined,
                           ),
                           
                           _buildTextField(
                             controller: phoneController,
-                            label: 'Phone Number',
+                            label: loc.phoneNumber,
                             hint: '07X XXX XXXX',
                             prefixIcon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
                             validator: (v) {
                               if (v == null || v.isEmpty) {
-                                return 'Please enter your phone number';
+                                return loc.phoneNumber;
                               }
                               if (v.length < 10) {
-                                return 'Please enter a valid phone number';
+                                return 'Invalid';
                               }
                               return null;
                             },
@@ -476,83 +436,47 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                           
                           const SizedBox(height: 20),
                           Text(
-                            'Account Details',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w600,
-                              color: kGrey,
-                            ),
+                            loc.accountDetails,
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kGrey),
                           ),
                           const SizedBox(height: 20),
                           
                           _buildTextField(
                             controller: emailController,
-                            label: 'Email Address',
+                            label: loc.emailAddress,
                             hint: 'your.email@example.com',
                             prefixIcon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Please enter your email';
-                              }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
-                                return 'Please enter a valid email';
-                              }
-                              return null;
-                            },
                           ),
                           
                           _buildTextField(
                             controller: passwordController,
-                            label: 'Password',
+                            label: loc.password,
                             hint: 'At least 6 characters',
                             prefixIcon: Icons.lock_outline,
                             obscureText: !_isPasswordVisible,
                             isPassword: true,
                             isPasswordVisible: _isPasswordVisible,
                             onVisibilityToggle: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Please enter a password';
-                              }
-                              if (v.length < 6) {
-                                return 'Password must be at least 6 characters';
-                              }
-                              return null;
+                              setState(() => _isPasswordVisible = !_isPasswordVisible);
                             },
                           ),
                           
                           _buildTextField(
                             controller: rePasswordController,
-                            label: 'Confirm Password',
+                            label: loc.confirmPassword,
                             hint: 'Re-enter your password',
                             prefixIcon: Icons.lock_outline,
                             obscureText: !_isRePasswordVisible,
                             isPassword: true,
                             isPasswordVisible: _isRePasswordVisible,
                             onVisibilityToggle: () {
-                              setState(() {
-                                _isRePasswordVisible = !_isRePasswordVisible;
-                              });
-                            },
-                            validator: (v) {
-                              if (v == null || v.isEmpty) {
-                                return 'Please confirm your password';
-                              }
-                              if (v != passwordController.text) {
-                                return 'Passwords do not match';
-                              }
-                              return null;
+                              setState(() => _isRePasswordVisible = !_isRePasswordVisible);
                             },
                           ),
                           
                           const SizedBox(height: 10),
                           
-                          // Sign Up Button
                           Container(
                             width: double.infinity,
                             height: 56,
@@ -560,27 +484,18 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                               onPressed: _isLoading ? null : _signUpWithEmail,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: kMainColor,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                                 elevation: 2,
                               ),
                               child: _isLoading
                                   ? const SizedBox(
                                       width: 24,
                                       height: 24,
-                                      child: CircularProgressIndicator(
-                                        color: kWhite,
-                                        strokeWidth: 2,
-                                      ),
+                                      child: CircularProgressIndicator(color: kWhite, strokeWidth: 2),
                                     )
-                                  : const Text(
-                                      'Create Account',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.w600,
-                                        color: kWhite,
-                                      ),
+                                  : Text(
+                                      loc.createAccountButton,
+                                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: kWhite),
                                     ),
                             ),
                           ),
@@ -590,19 +505,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                     
                     const SizedBox(height: 30),
                     
-                    // Divider
                     Row(
                       children: [
                         Expanded(child: Divider(color: Colors.grey[400])),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'OR',
-                            style: TextStyle(
-                              color: kGrey,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
+                          child: Text('OR', style: TextStyle(color: kGrey, fontWeight: FontWeight.w500)),
                         ),
                         Expanded(child: Divider(color: Colors.grey[400])),
                       ],
@@ -610,34 +518,21 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                     
                     const SizedBox(height: 30),
                     
-                    // Google Sign Up Button
                     Container(
                       width: double.infinity,
                       height: 56,
                       child: OutlinedButton.icon(
                         onPressed: _isLoading ? null : _signInWithGoogle,
                         icon: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : Image.asset(
-                                'assets/images/Google_Logo.jpg',
-                                height: 24,
-                              ),
-                        label: const Text(
-                          'Sign up with Google',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Image.asset('assets/images/Google_Logo.jpg', height: 24),
+                        label: Text(
+                          loc.googleSignUp,
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
                         ),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: Colors.grey[300]!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           backgroundColor: kWhite,
                           foregroundColor: kGrey,
                         ),
@@ -646,7 +541,6 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                     
                     const SizedBox(height: 30),
                     
-                    // Sign In Link
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -657,22 +551,12 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(
-                            "Already have an account? ",
-                            style: TextStyle(
-                              color: kGrey,
-                              fontSize: 16,
-                            ),
-                          ),
+                          Text(loc.alreadyHaveAccount, style: TextStyle(color: kGrey, fontSize: 14)),
                           GestureDetector(
                             onTap: () => Navigator.pushNamed(context, '/signin'),
                             child: Text(
-                              "Sign in here",
-                              style: TextStyle(
-                                color: kMainColor,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                              loc.signInHere,
+                              style: TextStyle(color: kMainColor, fontSize: 14, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],

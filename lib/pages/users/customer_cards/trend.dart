@@ -1,4 +1,5 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -183,12 +184,13 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
 
   @override
   Widget build(BuildContext context) {
+    final loc = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'My Harvest Trends',
-          style: TextStyle(
+        title: Text(
+          loc.harvestTrends,
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -218,12 +220,12 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
         ),
       ),
       body: isLoading
-          ? _buildLoadingState()
+          ? _buildLoadingState(loc)
           : harvestRecords.isEmpty
-              ? _buildEmptyState()
+              ? _buildEmptyState(loc)
               : FadeTransition(
                   opacity: _fadeAnimation!,
-                  child: _buildContent(),
+                  child: _buildContent(loc),
                 ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -258,22 +260,22 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
             elevation: 0,
             selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
             unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 24),
-                label: 'Home',
+                icon: const Icon(Icons.home_rounded, size: 24),
+                label: loc.home,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.trending_up, size: 24),
-                label: 'Trends',
+                icon: const Icon(Icons.trending_up, size: 24),
+                label: loc.trends,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.payments, size: 24),
-                label: 'Payments',
+                icon: const Icon(Icons.payments, size: 24),
+                label: loc.payments,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 24),
-                label: 'Profile',
+                icon: const Icon(Icons.person, size: 24),
+                label: loc.profile,
               ),
             ],
           ),
@@ -282,7 +284,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildLoadingState(AppLocalizations loc) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -293,7 +295,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
           ),
           const SizedBox(height: 20),
           Text(
-            'Loading your harvest data...',
+            loc.startuptitle,
             style: TextStyle(
               fontSize: 16,
               color: Colors.grey[600],
@@ -302,7 +304,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
           ),
           const SizedBox(height: 8),
           Text(
-            'Please wait while we gather your records',
+            loc.startupdescription,
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
@@ -313,7 +315,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations loc) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -339,7 +341,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
             ),
             const SizedBox(height: 32),
             Text(
-              'No Harvest Data Yet',
+              loc.totalHarvest,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -348,7 +350,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
             ),
             const SizedBox(height: 12),
             Text(
-              'Your harvest trends will appear here once tea leaves are collected and weighed.',
+              loc.harvestTrendsDescription,
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[600],
@@ -370,7 +372,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Contact your collector for harvest collection',
+                      loc.contactCollector,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.blue.shade700,
@@ -389,7 +391,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(AppLocalizations loc) {
     final filteredRecords = _getFilteredRecords();
     final filteredChartData = _getFilteredChartData();
     
@@ -404,7 +406,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                 Row(
                   children: [
                     Expanded(child: _buildStatCard(
-                      'Total Harvest', 
+                      loc.totalHarvest, 
                       '${totalHarvest.toStringAsFixed(1)} kg', 
                       Icons.eco, 
                       Colors.green,
@@ -412,7 +414,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                     )),
                     const SizedBox(width: 12),
                     Expanded(child: _buildStatCard(
-                      'Average Weight', 
+                      loc.averageWeight, 
                       '${averageWeight.toStringAsFixed(1)} kg', 
                       Icons.analytics_outlined, 
                       Colors.blue,
@@ -424,7 +426,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                 Row(
                   children: [
                     Expanded(child: _buildStatCard(
-                      'Highest Harvest', 
+                      loc.highestHarvest, 
                       '${highestHarvest.toStringAsFixed(1)} kg', 
                       Icons.trending_up, 
                       Colors.orange,
@@ -432,7 +434,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                     )),
                     const SizedBox(width: 12),
                     Expanded(child: _buildStatCard(
-                      'Collections', 
+                      loc.collections, 
                       '$totalCollections', 
                       Icons.calendar_month, 
                       Colors.purple,
@@ -468,7 +470,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                     Icon(Icons.filter_list, color: kMainColor, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Time Period',
+                      loc.timePeriod,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,

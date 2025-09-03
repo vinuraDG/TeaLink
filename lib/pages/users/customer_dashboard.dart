@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:TeaLink/pages/login_page.dart';
+import 'package:TeaLink/l10n/app_localizations.dart'; // Import localization
 
 class CustomerDashboard extends StatefulWidget {
   const CustomerDashboard({super.key});
@@ -83,11 +84,11 @@ class _CustomerDashboardState extends State<CustomerDashboard>
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
         if (mounted) {
-          setState(() => displayName = doc.data()?['name'] ?? 'User');
+          setState(() => displayName = doc.data()?['name'] ?? AppLocalizations.of(context)?.user ?? 'User');
         }
       } catch (e) {
         if (mounted) {
-          setState(() => displayName = 'User');
+          setState(() => displayName = AppLocalizations.of(context)?.user ?? 'User');
         }
       }
     }
@@ -305,6 +306,7 @@ Future<void> debugWeekCalculations() async {
   print('Day of year: ${now.difference(DateTime(now.year, 1, 1)).inDays + 1}');
   print('Week day: ${now.weekday}');
 }
+
   Future<void> _loadProfileImage() async {
     try {
       final directory = await getApplicationDocumentsDirectory();
@@ -332,11 +334,11 @@ Future<void> debugWeekCalculations() async {
 
       if (mounted) {
         setState(() => _profileImage = savedImage);
-        _showSuccessSnackBar('Profile picture updated successfully!');
+        _showSuccessSnackBar(AppLocalizations.of(context)?.profilePictureUpdated ?? 'Profile picture updated successfully!');
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Failed to update profile picture');
+        _showErrorSnackBar(AppLocalizations.of(context)?.failedToUpdateProfilePicture ?? 'Failed to update profile picture');
       }
     }
   }
@@ -362,18 +364,20 @@ Future<void> debugWeekCalculations() async {
 
   String getGreeting() {
     final hour = DateTime.now().hour;
-    if (hour < 12) return "Good Morning";
-    if (hour < 17) return "Good Afternoon";
-    return "Good Evening";
+    final l10n = AppLocalizations.of(context);
+    if (hour < 12) return l10n?.goodMorning ?? "Good Morning";
+    if (hour < 17) return l10n?.goodAfternoon ?? "Good Afternoon";
+    return l10n?.goodEvening ?? "Good Evening";
   }
 
   // Get current location with proper error handling
   Future<Map<String, double>?> _getCurrentLocation() async {
+    final l10n = AppLocalizations.of(context);
     try {
       // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        _showErrorSnackBar('Location services are disabled. Please enable them.');
+        _showErrorSnackBar(l10n?.locationServicesDisabled ?? 'Location services are disabled. Please enable them.');
         return null;
       }
 
@@ -382,13 +386,13 @@ Future<void> debugWeekCalculations() async {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          _showErrorSnackBar('Location permission denied.');
+          _showErrorSnackBar(l10n?.locationPermissionDenied ?? 'Location permission denied.');
           return null;
         }
       }
       
       if (permission == LocationPermission.deniedForever) {
-        _showErrorSnackBar('Location permissions are permanently denied.');
+        _showErrorSnackBar(l10n?.locationPermissionDeniedForever ?? 'Location permissions are permanently denied.');
         return null;
       }
 
@@ -404,13 +408,14 @@ Future<void> debugWeekCalculations() async {
       };
     } catch (e) {
       print('Error getting location: $e');
-      _showErrorSnackBar('Failed to get location. Please try again.');
+      _showErrorSnackBar(l10n?.failedToGetLocation ?? 'Failed to get location. Please try again.');
       return null;
     }
   }
 
   // Show location save dialog
   Future<bool> _showLocationSaveDialog(Map<String, double> locationData) async {
+    final l10n = AppLocalizations.of(context);
     final TextEditingController addressController = TextEditingController();
     bool saveLocation = false;
 
@@ -419,24 +424,24 @@ Future<void> debugWeekCalculations() async {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.location_on, color: Colors.orange, size: 28),
-            SizedBox(width: 12),
-            Text('Save Your Location'),
+            const Icon(Icons.location_on, color: Colors.orange, size: 28),
+            const SizedBox(width: 12),
+            Text(l10n?.saveYourLocation ?? 'Save Your Location'),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'We detected you don\'t have a saved location. Would you like to save your current location for future notifications?',
-              style: TextStyle(fontSize: 14),
+            Text(
+              l10n?.locationDetectionMessage ?? 'We detected you don\'t have a saved location. Would you like to save your current location for future notifications?',
+              style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
             Text(
-              'Coordinates: ${locationData['latitude']!.toStringAsFixed(6)}, ${locationData['longitude']!.toStringAsFixed(6)}',
+              '${l10n?.coordinates ?? 'Coordinates'}: ${locationData['latitude']!.toStringAsFixed(6)}, ${locationData['longitude']!.toStringAsFixed(6)}',
               style: TextStyle(
                 fontSize: 12,
                 color: Colors.grey[600],
@@ -447,8 +452,8 @@ Future<void> debugWeekCalculations() async {
             TextField(
               controller: addressController,
               decoration: InputDecoration(
-                labelText: 'Address (Optional)',
-                hintText: 'Enter your address or location description',
+                labelText: l10n?.addressOptional ?? 'Address (Optional)',
+                hintText: l10n?.enterAddress ?? 'Enter your address or location description',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -464,7 +469,7 @@ Future<void> debugWeekCalculations() async {
               saveLocation = false;
               Navigator.pop(context);
             },
-            child: const Text('Skip'),
+            child: Text(l10n?.skip ?? 'Skip'),
           ),
           ElevatedButton(
             onPressed: () {
@@ -475,7 +480,7 @@ Future<void> debugWeekCalculations() async {
               backgroundColor: kMainColor,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Save Location'),
+            child: Text(l10n?.saveLocation ?? 'Save Location'),
           ),
         ],
       ),
@@ -490,6 +495,7 @@ Future<void> debugWeekCalculations() async {
 
   // Save location to user document
   Future<void> _saveLocationToUser(Map<String, double> locationData, String address) async {
+    final l10n = AppLocalizations.of(context);
     try {
       Map<String, dynamic> updateData = {
         'latitude': locationData['latitude'],
@@ -506,22 +512,33 @@ Future<void> debugWeekCalculations() async {
           .doc(user!.uid)
           .update(updateData);
       
-      _showSuccessSnackBar('Location saved successfully!');
+      _showSuccessSnackBar(l10n?.locationSavedSuccessfully ?? 'Location saved successfully!');
     } catch (e) {
       print('Error saving location: $e');
-      _showErrorSnackBar('Failed to save location: ${e.toString()}');
+      _showErrorSnackBar(l10n?.failedToSaveLocation ?? 'Failed to save location');
     }
   }
 
   Future<void> _notifyCollector(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     if (user == null) return;
 
     // Show loading indicator
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
+      builder: (context) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              l10n?.loading ?? 'Loading...',
+              style: const TextStyle(color: Colors.white,fontSize: 25),
+            ),
+          ],
+        ),
       ),
     );
 
@@ -532,7 +549,7 @@ Future<void> debugWeekCalculations() async {
           .get();
 
       final regNo = userDoc.data()?['registrationNumber'];
-      final name = userDoc.data()?['name'] ?? 'Unknown';
+      final name = userDoc.data()?['name'] ?? l10n?.user ?? 'Unknown';
       
       // Get user's stored location from the user document
       final userLatitude = userDoc.data()?['latitude'];
@@ -559,9 +576,8 @@ Future<void> debugWeekCalculations() async {
       if (regNo == null || regNo.isEmpty) {
         if (mounted) {
           Navigator.pop(context); // Close loading dialog
-          // Use a delay to ensure the dialog is closed before showing SnackBar
           Future.delayed(const Duration(milliseconds: 100), () {
-            _showErrorSnackBar('Registration number not found. Please update your profile.');
+            _showErrorSnackBar(l10n?.registrationNumberNotFound ?? 'Registration number not found. Please update your profile.');
           });
         }
         return;
@@ -570,9 +586,8 @@ Future<void> debugWeekCalculations() async {
       if (collectorId == null || collectorId.isEmpty) {
         if (mounted) {
           Navigator.pop(context); // Close loading dialog
-          // Use a delay to ensure the dialog is closed before showing SnackBar
           Future.delayed(const Duration(milliseconds: 100), () {
-            _showErrorSnackBar('No active collector assigned. Please contact admin.');
+            _showErrorSnackBar(l10n?.noActiveCollector ?? 'No active collector assigned. Please contact admin.');
           });
         }
         return;
@@ -597,7 +612,7 @@ Future<void> debugWeekCalculations() async {
         Map<String, double>? currentLocationData = await _getCurrentLocation();
         
         if (currentLocationData == null) {
-          _showErrorSnackBar('Location is required to notify the collector.');
+          _showErrorSnackBar(l10n?.locationRequired ?? 'Location is required to notify the collector.');
           return;
         }
 
@@ -609,8 +624,18 @@ Future<void> debugWeekCalculations() async {
           showDialog(
             context: context,
             barrierDismissible: false,
-            builder: (context) => const Center(
-              child: CircularProgressIndicator(),
+            builder: (context) => Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    l10n?.loading ?? 'Loading...',
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -672,7 +697,6 @@ Future<void> debugWeekCalculations() async {
 
       if (mounted) {
         Navigator.pop(context); // Close loading dialog
-        // Use a delay to ensure the dialog is closed before showing success dialog
         Future.delayed(const Duration(milliseconds: 100), () {
           _showSuccessDialog();
         });
@@ -682,30 +706,30 @@ Future<void> debugWeekCalculations() async {
         Navigator.pop(context); // Close loading dialog if still open
       }
       print('Error in _notifyCollector: $e');
-      // Use a delay to ensure any dialogs are closed before showing SnackBar
       Future.delayed(const Duration(milliseconds: 100), () {
-        _showErrorSnackBar('Failed to notify collector. Please try again.');
+        _showErrorSnackBar(l10n?.failedToNotifyCollector ?? 'Failed to notify collector. Please try again.');
       });
     }
   }
 
   void _showSuccessDialog() {
+    final l10n = AppLocalizations.of(context);
     if (!mounted) return;
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 28),
-            SizedBox(width: 12),
-            Text('Success!', style: TextStyle(fontWeight: FontWeight.bold)),
+            const Icon(Icons.check_circle, color: Colors.green, size: 28),
+            const SizedBox(width: 12),
+            Text(l10n?.success ?? 'Success!', style: const TextStyle(fontWeight: FontWeight.bold)),
           ],
         ),
-        content: const Text(
-          'The collector has been notified about today\'s harvest. They will contact you soon.',
-          style: TextStyle(fontSize: 16),
+        content: Text(
+          l10n?.collectorNotifiedMessage ?? 'The collector has been notified about today\'s harvest. They will contact you soon.',
+          style: const TextStyle(fontSize: 16),
         ),
         actions: [
           ElevatedButton(
@@ -715,7 +739,7 @@ Future<void> debugWeekCalculations() async {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            child: const Text('OK'),
+            child: Text(l10n?.ok ?? 'OK'),
           ),
         ],
       ),
@@ -725,7 +749,6 @@ Future<void> debugWeekCalculations() async {
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     
-    // Use the ScaffoldMessenger key to ensure we have a valid context
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scaffoldMessengerKey.currentState != null) {
         _scaffoldMessengerKey.currentState!.showSnackBar(
@@ -750,7 +773,6 @@ Future<void> debugWeekCalculations() async {
   void _showSuccessSnackBar(String message) {
     if (!mounted) return;
     
-    // Use the ScaffoldMessenger key to ensure we have a valid context
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _scaffoldMessengerKey.currentState != null) {
         _scaffoldMessengerKey.currentState!.showSnackBar(
@@ -772,8 +794,8 @@ Future<void> debugWeekCalculations() async {
     });
   }
 
-  // Add logout method that was missing
   Future<void> _logout(BuildContext context) async {
+    final l10n = AppLocalizations.of(context);
     try {
       await FirebaseAuth.instance.signOut();
       if (mounted) {
@@ -783,12 +805,14 @@ Future<void> debugWeekCalculations() async {
         );
       }
     } catch (e) {
-      _showErrorSnackBar('Failed to logout. Please try again.');
+      _showErrorSnackBar(l10n?.failedToLogout ?? 'Failed to logout. Please try again.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    
     return WillPopScope(
       onWillPop: () async {
         await _logout(context);
@@ -809,9 +833,9 @@ Future<void> debugWeekCalculations() async {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
               ),
-              child: const Text(
-                'CUSTOMER DASHBOARD',
-                style: TextStyle(
+              child: Text(
+                l10n?.customerDashboard ?? 'CUSTOMER DASHBOARD',
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -957,22 +981,22 @@ Future<void> debugWeekCalculations() async {
                 elevation: 0,
                 selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
                 unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 11),
-                items: const [
+                items: [
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.home_rounded, size: 24),
-                    label: 'Home',
+                    icon: const Icon(Icons.home_rounded, size: 24),
+                    label: l10n?.home ?? 'Home',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.trending_up, size: 24),
-                    label: 'Trends',
+                    icon: const Icon(Icons.trending_up, size: 24),
+                    label: l10n?.trends ?? 'Trends',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.payments, size: 24),
-                    label: 'Payments',
+                    icon: const Icon(Icons.payments, size: 24),
+                    label: l10n?.payments ?? 'Payments',
                   ),
                   BottomNavigationBarItem(
-                    icon: Icon(Icons.person, size: 24),
-                    label: 'Profile',
+                    icon: const Icon(Icons.person, size: 24),
+                    label: l10n?.profile ?? 'Profile',
                   ),
                 ],
               ),
@@ -984,6 +1008,7 @@ Future<void> debugWeekCalculations() async {
   }
 
   Widget _buildHeaderContent() {
+    final l10n = AppLocalizations.of(context);
     return Row(
       children: [
         Expanded(
@@ -991,7 +1016,7 @@ Future<void> debugWeekCalculations() async {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Hello, ${displayName ?? 'Loading...'}",
+                "${l10n?.hello ?? 'Hello'}, ${displayName ?? (l10n?.loading ?? 'Loading...')}",
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 24,
@@ -1027,9 +1052,9 @@ Future<void> debugWeekCalculations() async {
                 child: ElevatedButton.icon(
                   onPressed: () => _notifyCollector(context),
                   icon: const Icon(Icons.notifications_active, color: Colors.white, size: 18),
-                  label: const Text(
-                    "Notify Collector",
-                    style: TextStyle(
+                  label: Text(
+                    l10n?.notifyCollector ?? "Notify Collector",
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
@@ -1115,12 +1140,13 @@ Future<void> debugWeekCalculations() async {
   }
 
   Widget _buildDashboardContent() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Dashboard Overview",
-          style: TextStyle(
+        Text(
+          l10n?.dashboardOverview ?? "Dashboard Overview",
+          style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -1128,7 +1154,7 @@ Future<void> debugWeekCalculations() async {
         ),
         const SizedBox(height: 8),
         Text(
-          "Track your tea farming progress",
+          l10n?.trackTeaFarming ?? "Track your tea farming progress",
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey[600],
@@ -1145,7 +1171,7 @@ Future<void> debugWeekCalculations() async {
                   children: [
                     Expanded(
                       child: _buildEnhancedDashboardCard(
-                        title: "Weekly Harvest",
+                        title: l10n?.weeklyHarvest ?? "Weekly Harvest",
                         subtitle: currentDate,
                         value: weeklyHarvest,
                         icon: null,
@@ -1157,8 +1183,8 @@ Future<void> debugWeekCalculations() async {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildEnhancedDashboardCard(
-                        title: "Harvest Trends",
-                        subtitle: "View analytics",
+                        title: l10n?.harvestTrends ?? "Harvest Trends",
+                        subtitle: l10n?.viewAnalytics ?? "View analytics",
                         icon: Icons.trending_up,
                         color: Colors.blue,
                         delay: 100,
@@ -1173,8 +1199,8 @@ Future<void> debugWeekCalculations() async {
                   children: [
                     Expanded(
                       child: _buildEnhancedDashboardCard(
-                        title: "Payments",
-                        subtitle: "View transactions",
+                        title: l10n?.payments ?? "Payments",
+                        subtitle: l10n?.viewTransactions ?? "View transactions",
                         icon: Icons.payment,
                         color: Colors.orange,
                         delay: 200,
@@ -1185,8 +1211,8 @@ Future<void> debugWeekCalculations() async {
                     const SizedBox(width: 16),
                     Expanded(
                       child: _buildEnhancedDashboardCard(
-                        title: "Collector Info",
-                        subtitle: "Contact details",
+                        title: l10n?.collectorInfom ?? "Collector Info",
+                        subtitle: l10n?.contactDetails ?? "Contact details",
                         icon: Icons.person_outline,
                         color: Colors.purple,
                         delay: 300,
@@ -1209,12 +1235,13 @@ Future<void> debugWeekCalculations() async {
   }
 
   Widget _buildFeatureSection() {
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Quick Actions",
-          style: TextStyle(
+        Text(
+          l10n?.quickActions ?? "Quick Actions",
+          style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.black87,
@@ -1242,10 +1269,10 @@ Future<void> debugWeekCalculations() async {
                 children: [
                   Icon(Icons.eco, color: kMainColor, size: 24),
                   const SizedBox(width: 12),
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Tea Collection Status',
-                      style: TextStyle(
+                      l10n?.teaCollectionStatus ?? 'Tea Collection Status',
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black87,
@@ -1256,6 +1283,7 @@ Future<void> debugWeekCalculations() async {
               ),
               const SizedBox(height: 12),
               Text(
+                l10n?.weeklyHarvestReady.replaceAll('{amount}', weeklyHarvest) ?? 
                 'Your weekly harvest of $weeklyHarvest is ready for collection. Use the "Notify Collector" button to alert your assigned collector.',
                 style: TextStyle(
                   fontSize: 14,

@@ -1,8 +1,9 @@
 // admin_dashboard.dart
+import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/pages/users/admin_card/admin_payment.dart';
 import 'package:TeaLink/pages/users/admin_card/alert.dart';
 import 'package:TeaLink/pages/users/admin_card/manage_users.dart';
 import 'package:TeaLink/pages/users/admin_card/view_harvest.dart';
-import 'package:TeaLink/pages/users/customer_cards/payment.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -25,6 +26,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int totalPayments = 0;
   int todayUsers = 0; // Only customers + collectors registered today
   int todayHarvests = 0;
+  int _selectedIndex = 0;
   List<Map<String, dynamic>> alerts = [];
   bool isLoading = true;
 
@@ -535,6 +537,60 @@ class _AdminDashboardState extends State<AdminDashboard> {
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : _buildDashboardHome(),
+           bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 15,
+              offset: const Offset(0, -3),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+          child: BottomNavigationBar(
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+            currentIndex: _selectedIndex,
+            onTap: _onItemTapped,
+            selectedItemColor: kMainColor,
+            unselectedItemColor: Colors.grey,
+            showSelectedLabels: true,
+            showUnselectedLabels: true,
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            type: BottomNavigationBarType.fixed,
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.home_rounded, size: 26),
+                label: 'Home',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.map_sharp, size: 26),
+                label: 'Payment',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.history, size: 26),
+                label: 'Users',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person, size: 26),
+                label: 'Setting',
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -668,7 +724,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 )),
                 _buildActionCard('Payments', Icons.payment, () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => PaymentsPage()),
+                  MaterialPageRoute(builder: (context) => PaymentPage()),
                 )),
               ],
             ),
@@ -762,5 +818,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
     if (hour < 12) return 'Morning';
     if (hour < 17) return 'Afternoon';
     return 'Evening';
+  }
+
+    void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
+
+    switch (index) {
+      case 0:
+        // Already on home 
+        Navigator.pushNamed(context, '/admin_home');
+        break;
+      
+      case 1:
+        Navigator.pushNamed(context, '/admin_payments');
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/admin_users');
+        break;
+      case 3:
+        Navigator.pushNamed(context, '/admin_settings');
+        break;
+    }
   }
 }
