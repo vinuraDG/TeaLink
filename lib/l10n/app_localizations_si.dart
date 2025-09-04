@@ -408,5 +408,13 @@ String get languageUpdatedSuccessfully => 'භාෂාව සාර්ථකව
 @override
 String get failedToUpdateLanguage => 'භාෂාව යාවත්කාලීන කිරීමට අසමත් විය.';
 
+@override
+String get languageChanged => 'භාෂාව වෙනස් කරන ලදී';
+
+@override
+String get restartAppForComplete => 'භාෂාව යාවත්කාලීන කර ඇත. වෙනස්කම් සම්පූර්ණයෙන්ම පිළිබිඹු කිරීම සඳහා යෙදුමේ restart කරන්න.';
+
+@override
+String get okay => 'හරි';
 
 }

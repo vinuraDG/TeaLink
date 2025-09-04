@@ -35,11 +35,12 @@ class LanguageService {
             .collection('users')
             .doc(user.uid)
             .update({
-          'preferredLanguage': languageCode,
-          'languageUpdatedAt': FieldValue.serverTimestamp(),
+          'language': languageCode,
+          'updatedAt': FieldValue.serverTimestamp(),
         });
       } catch (e) {
         print('Error saving language to Firestore: $e');
+        rethrow; // Re-throw to handle in UI
       }
     }
   }
@@ -53,9 +54,9 @@ class LanguageService {
             .collection('users')
             .doc(user.uid)
             .get();
-        
-        if (doc.exists && doc.data()?['preferredLanguage'] != null) {
-          return doc.data()!['preferredLanguage'] as String;
+
+        if (doc.exists && doc.data()?['language'] != null) {
+          return doc.data()!['language'] as String;
         }
       } catch (e) {
         print('Error getting language from Firestore: $e');
@@ -84,10 +85,19 @@ class LanguageService {
     return const Locale('en');
   }
 
-  // Save language (both locally and to Firestore)
+  // Save language (both locally and to Firestore) - Enhanced for profile page
   static Future<void> setLanguage(String languageCode) async {
+    // Save locally first for immediate UI update
     await saveLanguageLocally(languageCode);
-    await saveLanguageToFirestore(languageCode);
+    
+    // Then save to Firestore (can be async)
+    try {
+      await saveLanguageToFirestore(languageCode);
+    } catch (e) {
+      // If Firestore save fails, still keep local change but notify user
+      print('Warning: Language saved locally but failed to sync to cloud: $e');
+      rethrow;
+    }
   }
 
   // Get supported locales
@@ -99,14 +109,43 @@ class LanguageService {
   }
 
   // Get language name for display
-  static String getLanguageName(String code, String currentLanguageCode) {
+  static String getLanguageName(String code, [String? currentLanguageCode]) {
     switch (code) {
       case 'en':
-        return currentLanguageCode == 'si' ? 'English' : 'English';
+        return 'English';
       case 'si':
-        return currentLanguageCode == 'si' ? 'සිංහල' : 'Sinhala';
+        return 'සිංහල';
       default:
-        return 'Unknown';
+        return 'English'; // Default fallback
     }
   }
+
+  // Get language options map for dropdowns/dialogs
+  static Map<String, String> getLanguageOptions() {
+    return {
+      'en': 'English',
+      'si': 'සිංහල',
+    };
+  }
+
+  // Validate if language code is supported
+  static bool isLanguageSupported(String languageCode) {
+    return ['en', 'si'].contains(languageCode);
+  }
+
+  // Force sync language from Firestore to local storage
+  static Future<String?> syncLanguageFromCloud() async {
+    try {
+      String? cloudLanguage = await getLanguageFromFirestore();
+      if (cloudLanguage != null && isLanguageSupported(cloudLanguage)) {
+        await saveLanguageLocally(cloudLanguage);
+        return cloudLanguage;
+      }
+    } catch (e) {
+      print('Error syncing language from cloud: $e');
+    }
+    return null;
+  }
+
+  static Future<void> changeLanguage(String value) async {}
 }

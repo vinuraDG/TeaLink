@@ -246,6 +246,9 @@ String get language;
 String get updatingLanguage;
 String get languageUpdatedSuccessfully;
 String get failedToUpdateLanguage;
+String get languageChanged;
+String get restartAppForComplete;
+String get okay;
 
 }
 

@@ -406,6 +406,15 @@ String get languageUpdatedSuccessfully => 'Language updated successfully';
 @override
 String get failedToUpdateLanguage => 'Failed to update language';
 
+@override
+String get languageChanged => 'Language Changed';
+
+@override
+String get restartAppForComplete => 'The language has been updated. Some parts of the app may require a restart to fully reflect the changes.';
+
+@override
+String get okay => 'OK';
+
 
 
 

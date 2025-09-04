@@ -1,13 +1,13 @@
 import 'dart:io';
 import 'package:TeaLink/constants/colors.dart';
 import 'package:TeaLink/l10n/app_localizations.dart';
+import 'package:TeaLink/services/language_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
@@ -29,7 +29,7 @@ class _ProfilePageState extends State<ProfilePage> {
   String? address;
   double? latitude;
   double? longitude;
-  String? selectedLanguage; // Added for language preference
+  String? selectedLanguage;
   int _selectedIndex = 3;
 
   late TextEditingController nameController;
@@ -41,7 +41,6 @@ class _ProfilePageState extends State<ProfilePage> {
   final Map<String, String> _languageOptions = {
     'en': 'English',
     'si': 'සිංහල',
-    'ta': 'தமிழ்',
   };
 
   @override
@@ -50,6 +49,7 @@ class _ProfilePageState extends State<ProfilePage> {
     nameController = TextEditingController();
     phoneController = TextEditingController();
     _loadProfile();
+    _loadUserLanguagePreference();
   }
 
   @override
@@ -139,7 +139,7 @@ class _ProfilePageState extends State<ProfilePage> {
         address = data['location'] ?? '';
         latitude = data['latitude'];
         longitude = data['longitude'];
-        selectedLanguage = data['language'] ?? 'en'; // Load language preference
+        selectedLanguage = data['language'] ?? 'en';
       });
     }
 
@@ -169,6 +169,151 @@ class _ProfilePageState extends State<ProfilePage> {
         });
       }
     }
+  }
+
+  // Enhanced method to handle language loading on profile initialization
+  Future<void> _loadUserLanguagePreference() async {
+    try {
+      // Get language from LanguageService with fallback chain
+      String? userLanguage = await LanguageService.getLanguageLocally();
+      
+      // If no local language, try Firestore
+      if (userLanguage == null) {
+        userLanguage = await LanguageService.getLanguageFromFirestore();
+      }
+      
+      // Set default if still null
+      userLanguage ??= 'en';
+      
+      if (mounted) {
+        setState(() {
+          selectedLanguage = userLanguage;
+        });
+      }
+      
+      // Ensure local storage is synced
+      await LanguageService.saveLanguageLocally(userLanguage);
+      
+    } catch (e) {
+      debugPrint('Error loading language preference: $e');
+      if (mounted) {
+        setState(() {
+          selectedLanguage = 'en'; // Fallback to English
+        });
+      }
+    }
+  }
+
+  // Method for changing language
+  Future<void> _changeLanguage() async {
+    final l10n = AppLocalizations.of(context)!;
+    
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.language, color: kMainColor, size: 24),
+              const SizedBox(width: 8),
+              Text(l10n.language, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _languageOptions.entries.map((entry) {
+              return RadioListTile<String>(
+                title: Text(entry.value),
+                value: entry.key,
+                groupValue: selectedLanguage,
+                activeColor: kMainColor,
+                onChanged: (value) async {
+                  if (value != null && value != selectedLanguage) {
+                    // Update local state
+                    setState(() {
+                      selectedLanguage = value;
+                    });
+                    
+                    // Save to both local storage and Firestore
+                    try {
+                      await LanguageService.saveLanguageLocally(value);
+                      await LanguageService.changeLanguage(value);
+                      
+                      // Update Firestore
+                      await _firestore.collection('users').doc(user.uid).update({
+                        'language': value,
+                        'updatedAt': FieldValue.serverTimestamp(),
+                      });
+                      
+                      Navigator.pop(ctx);
+                      _showSuccessSnackBar(l10n.languageUpdatedSuccessfully);
+                      
+                      // Optionally restart the app or rebuild to apply language changes
+                      // You might want to show a message asking user to restart the app
+                      _showLanguageChangeDialog();
+                      
+                    } catch (e) {
+                      Navigator.pop(ctx);
+                      _showErrorSnackBar('Failed to update language: $e');
+                    }
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showLanguageChangeDialog() {
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+       title: Column(
+  mainAxisSize: MainAxisSize.min,
+  crossAxisAlignment: CrossAxisAlignment.center,
+  children: [
+    Icon(Icons.info_outline, color: kMainColor, size: 48),
+    const SizedBox(height: 12),
+    Text(
+      l10n.languageChanged,
+      style: const TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w600,
+      ),
+      textAlign: TextAlign.center,
+    ),
+  ],
+),
+content: Text(
+  l10n.restartAppForComplete,
+  textAlign: TextAlign.center,
+),
+actions: [
+  Center(
+    child: ElevatedButton(
+      onPressed: () => Navigator.pop(ctx),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: kMainColor,
+        foregroundColor: Colors.white,
+      ),
+      child: Text(l10n.okay),
+    ),
+  ),
+],
+      )
+    );
   }
 
   String _generateRegistrationNumber() {
@@ -350,74 +495,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  // New method for changing language
-  void _changeLanguage() {
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: [
-              Icon(Icons.language, color: kMainColor, size: 24),
-              const SizedBox(width: 8),
-              Text(l10n.selectLanguage, 
-                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: _languageOptions.entries.map((entry) {
-              return RadioListTile<String>(
-                title: Text(entry.value),
-                value: entry.key,
-                groupValue: selectedLanguage,
-                activeColor: kMainColor,
-                onChanged: (value) {
-                  setState(() {
-                    selectedLanguage = value;
-                  });
-                  Navigator.pop(ctx);
-                  _updateLanguageInFirestore(value!);
-                },
-              );
-            }).toList(),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(l10n.cancel),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  // New method to update language in Firestore
-Future<void> _updateLanguageInFirestore(String languageCode) async {
-  final l10n = AppLocalizations.of(context)!;
-  try {
-    _showLoadingSnackBar(l10n.updatingLanguage);
-    
-    // Update field names to match security rules
-    await _firestore.collection('users').doc(user.uid).update({
-      'preferredLanguage': languageCode,  // Changed from 'language'
-      'languageUpdatedAt': FieldValue.serverTimestamp(),  // Changed from 'updatedAt'
-    });
-    
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    _showSuccessSnackBar(l10n.languageUpdatedSuccessfully);
-    
-    // Note: You might want to trigger a locale change here
-    // This depends on how your app handles locale changes
-  } catch (e) {
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-    _showErrorSnackBar('${l10n.failedToUpdateLanguage}: $e');
-  }
-}
-
+  // Updated _saveProfile method to include language
   Future<void> _saveProfile() async {
     final l10n = AppLocalizations.of(context)!;
     if (nameController.text.trim().isEmpty) {
@@ -428,6 +506,9 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
     try {
       _showLoadingSnackBar(l10n.savingProfile);
 
+      // Ensure language is properly set
+      String languageToSave = selectedLanguage ?? 'en';
+      
       await _firestore.collection('users').doc(user.uid).update({
         'name': nameController.text.trim(),
         'phone': phoneController.text.trim(),
@@ -435,9 +516,12 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
         'location': address ?? '',
         'latitude': latitude,
         'longitude': longitude,
-        'language': selectedLanguage ?? 'en', // Include language in profile save
+        'language': languageToSave,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // Also save language locally
+      await LanguageService.saveLanguageLocally(languageToSave);
 
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       _showSuccessSnackBar(l10n.profileUpdatedSuccessfully);
@@ -445,6 +529,11 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       _showErrorSnackBar('${l10n.failedToUpdateProfile}: $e');
     }
+  }
+
+  // Helper method to check if language should trigger a rebuild
+  bool _shouldRebuildForLanguage(String newLanguage) {
+    return selectedLanguage != newLanguage && LanguageService.isLanguageSupported(newLanguage);
   }
 
   Future<void> _deleteAccount() async {
@@ -468,9 +557,9 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Text(
-               l10n.deleteAccountWarning,
-                style: TextStyle(fontSize: 16),
+              Text(
+                l10n.deleteAccountWarning,
+                style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
               Container(
@@ -481,11 +570,11 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 child: TextField(
                   controller: passwordController,
                   obscureText: true,
-                  decoration:  InputDecoration(
+                  decoration: InputDecoration(
                     hintText: l10n.enterYourPassword,
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(16),
-                    prefixIcon: Icon(Icons.lock_outline),
+                    contentPadding: const EdgeInsets.all(16),
+                    prefixIcon: const Icon(Icons.lock_outline),
                   ),
                 ),
               ),
@@ -497,14 +586,14 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 passwordController.dispose();
                 Navigator.pop(ctx, false);
               },
-              child:  Text(l10n.cancel),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.pop(ctx, true);
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-              child:  Text(l10n.deleteAccount, style: TextStyle(color: Colors.white)),
+              child: Text(l10n.deleteAccount, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -559,7 +648,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
             children: [
               Icon(Icons.edit, color: kMainColor, size: 24),
               const SizedBox(width: 8),
-               Text(l10n.editName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              Text(l10n.editName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             ],
           ),
           content: Container(
@@ -569,11 +658,11 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
             ),
             child: TextField(
               controller: tempController,
-              decoration:  InputDecoration(
+              decoration: InputDecoration(
                 hintText: l10n.enterYourName,
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
-                prefixIcon: Icon(Icons.person_outline),
+                contentPadding: const EdgeInsets.all(16),
+                prefixIcon: const Icon(Icons.person_outline),
               ),
             ),
           ),
@@ -583,7 +672,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 tempController.dispose();
                 Navigator.pop(ctx);
               },
-              child:  Text(l10n.cancel),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -599,7 +688,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
               ),
-              child:  Text(l10n.save),
+              child: Text(l10n.save),
             ),
           ],
         );
@@ -620,7 +709,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
             children: [
               Icon(Icons.phone, color: kMainColor, size: 24),
               const SizedBox(width: 8),
-               Text(l10n.editPhoneNumber, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              Text(l10n.editPhoneNumber, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
             ],
           ),
           content: Container(
@@ -631,11 +720,11 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
             child: TextField(
               controller: tempController,
               keyboardType: TextInputType.phone,
-              decoration:  InputDecoration(
+              decoration: InputDecoration(
                 hintText: l10n.enterYourPhoneNumber,
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.all(16),
-                prefixIcon: Icon(Icons.phone_outlined),
+                contentPadding: const EdgeInsets.all(16),
+                prefixIcon: const Icon(Icons.phone_outlined),
               ),
             ),
           ),
@@ -645,7 +734,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 tempController.dispose();
                 Navigator.pop(ctx);
               },
-              child:  Text(l10n.cancel),
+              child: Text(l10n.cancel),
             ),
             ElevatedButton(
               onPressed: () {
@@ -659,7 +748,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
               ),
-              child:  Text(l10n.save),
+              child: Text(l10n.save),
             ),
           ],
         );
@@ -754,49 +843,60 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: Colors.grey[50],
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 200.0,
-            floating: false,
-            pinned: true,
-            backgroundColor: kMainColor,
-            elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: kWhite),
-              onPressed: () => Navigator.pop(context),
-            ),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [kMainColor, kMainColor.withOpacity(0.8)],
-                  ),
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 40),
-                      _buildProfileImage(),
-                      const SizedBox(height: 12),
-                      Text(
-                        nameController.text.isNotEmpty ? nameController.text : l10n.welcome,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+  expandedHeight: 250.0,
+  floating: false,
+  pinned: true,
+  backgroundColor: kMainColor,
+  elevation: 0,
+  leading: IconButton(
+    icon: const Icon(Icons.arrow_back, color: kWhite),
+    onPressed: () => Navigator.pop(context),
+  ),
+  centerTitle: true,
+  title: Text(
+    l10n.profile,
+    style: const TextStyle(
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.w900,
+    ),
+  ),
+  flexibleSpace: FlexibleSpaceBar(
+    background: Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [kMainColor, kMainColor.withOpacity(0.8)],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 100),
+            _buildProfileImage(),
+            const SizedBox(height: 12),
+            Text(
+              nameController.text.isNotEmpty ? nameController.text : l10n.welcome,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 25,
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ),
+          ],
+        ),
+      ),
+    ),
+  ),
+),
+
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -816,7 +916,7 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                   const SizedBox(height: 12),
                   _buildInfoCard([
                     _buildEditableField(
-                     l10n.currentLocation,
+                      l10n.currentLocation,
                       address?.isEmpty == true ? l10n.addYourLocation : address ?? l10n.addYourLocation,
                       Icons.location_on,
                       _pickLocation
@@ -831,6 +931,11 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                   ]),
 
                   const SizedBox(height: 24),
+                  _buildQRSection(),
+
+                 
+
+                  const SizedBox(height: 16),
                   _buildSectionHeader(l10n.appSettings, Icons.settings),
                   const SizedBox(height: 12),
                   _buildInfoCard([
@@ -841,10 +946,6 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                       _changeLanguage
                     ),
                   ]),
-
-                  const SizedBox(height: 16),
-                  _buildQRSection(),
-
                   const SizedBox(height: 32),
                   _buildActionButtons(),
                   const SizedBox(height: 100),
@@ -874,11 +975,11 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
           showUnselectedLabels: true,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
-          items:  [
-            BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: l10n.home),
-            BottomNavigationBarItem(icon: Icon(Icons.trending_up_rounded), label:l10n.trends),
-            BottomNavigationBarItem(icon: Icon(Icons.payment_rounded), label: l10n.payments),
-            BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: l10n.profile),
+          items: [
+            BottomNavigationBarItem(icon: const Icon(Icons.home_rounded), label: l10n.home),
+            BottomNavigationBarItem(icon: const Icon(Icons.trending_up_rounded), label: l10n.trends),
+            BottomNavigationBarItem(icon: const Icon(Icons.payment_rounded), label: l10n.payments),
+            BottomNavigationBarItem(icon: const Icon(Icons.person_rounded), label: l10n.profile),
           ],
         ),
       ),
@@ -1035,14 +1136,14 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
               ),
               child: Icon(Icons.qr_code, color: kMainColor, size: 20),
             ),
-            title:  Text(
+            title: Text(
               l10n.myQRCode,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
               ),
             ),
-            subtitle:  Text(l10n.shareQRCodeDescription),
+            subtitle: Text(l10n.shareQRCodeDescription),
             trailing: IconButton(
               icon: Icon(_showQR ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
               onPressed: () => setState(() => _showQR = !_showQR),
@@ -1103,14 +1204,14 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
               ),
               elevation: 2,
             ),
-            child:  Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.save, size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.save, size: 20),
+                const SizedBox(width: 8),
                 Text(
                   l10n.saveChanges,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                   ),
@@ -1132,14 +1233,14 @@ Future<void> _updateLanguageInFirestore(String languageCode) async {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child:  Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.delete_outline, size: 20),
-                SizedBox(width: 8),
+                const Icon(Icons.delete_outline, size: 20),
+                const SizedBox(width: 8),
                 Text(
                   l10n.deleteAccount,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
@@ -1178,9 +1279,9 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title:  Text(
+        title: Text(
           l10n.chooseLocation,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
           ),
@@ -1206,7 +1307,7 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16),
               ),
-              child:  Text(l10n.confirm, style: TextStyle(fontWeight: FontWeight.w600)),
+              child: Text(l10n.confirm, style: const TextStyle(fontWeight: FontWeight.w600)),
             ),
           )
         ],
@@ -1350,10 +1451,10 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
                   children: [
                     Icon(Icons.info_outline, color: kMainColor),
                     const SizedBox(width: 12),
-                     Expanded(
+                    Expanded(
                       child: Text(
                         l10n.tapToSelectLocation,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                         ),
@@ -1389,9 +1490,9 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
                       children: [
                         Icon(Icons.location_on, color: kMainColor),
                         const SizedBox(width: 8),
-                         Text(
+                        Text(
                           l10n.selectedLocation,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -1515,14 +1616,14 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:  Text(l10n.cancel),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await Geolocator.openLocationSettings();
             },
-            child:  Text(l10n.openSettings),
+            child: Text(l10n.openSettings),
           ),
         ],
       ),
@@ -1535,18 +1636,18 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Location Permission Required'),
-        content:  Text(l10n.locationPermissionRequired),
+        content: Text(l10n.locationPermissionRequired),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:  Text(l10n.cancel),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               _getCurrentLocation();
             },
-            child:  Text(l10n.retry),
+            child: Text(l10n.retry),
           ),
         ],
       ),
@@ -1559,18 +1660,18 @@ class _OSMLocationPickerPageState extends State<OSMLocationPickerPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Location Permission Denied'),
-        content:  Text(l10n.locationPermissionPermanentlyDenied),
+        content: Text(l10n.locationPermissionPermanentlyDenied),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child:  Text(l10n.cancel),
+            child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
               await Geolocator.openAppSettings();
             },
-            child:  Text(l10n.enableInAppSettings),
+            child: Text(l10n.enableInAppSettings),
           ),
         ],
       ),

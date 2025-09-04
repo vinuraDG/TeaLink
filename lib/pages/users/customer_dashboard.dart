@@ -535,7 +535,7 @@ Future<void> debugWeekCalculations() async {
             const SizedBox(height: 16),
             Text(
               l10n?.loading ?? 'Loading...',
-              style: const TextStyle(color: Colors.white,fontSize: 25),
+              style: const TextStyle(color: Colors.white,fontSize: 22),
             ),
           ],
         ),
