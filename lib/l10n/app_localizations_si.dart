@@ -25,7 +25,7 @@ class AppLocalizationsSi extends AppLocalizations {
   String get onboarding1Description => 'ඔබ කොපමණ තේ දළු එකතු කර ඇත්ද\nසහ\nසතියකට කොපමණ මුදලක් උපයා ඇත්දැයි බලන්න.';
 
   @override
-  String get onboarding2Title => 'එකතුකරන්නාගේ විස්තර\nහා ක්‍රියාකාරකම් බලන්න';
+  String get onboarding2Title => 'එකතුකරන්නාගේ විස්තර\nහා\nක්‍රියාකාරකම් බලන්න';
 
   @override
   String get onboarding2Description => 'ඔබේ එකතුකරන්නා කවුද\nසහ\nඔවුන්ගේ තොරතුරු ඉතා පහසුවෙන්\nඔබට බලාගත හැක.';
@@ -86,7 +86,7 @@ String get signInHere => 'මෙහි පිවිසෙන්න';
 String get loginTitle => 'ඇතුල් වන්න';
 
 @override
-String get welcomeToTeaLink => 'TeaLink වෙත සාදරයෙන්\n              \tපිළිගනිමු';
+String get welcomeToTeaLink => 'TeaLink වෙත සාදරයෙන්\nපිළිගනිමු';
 
 @override
 String get signInToAccount => 'ඔබේ ගිණුමට පිවිසෙන්න';
@@ -138,6 +138,8 @@ String get signUpHere => 'මෙහි ලියාපදිංචි වන්�
 @override String get availableCollectors => 'ඇතුලත්කරන්නන්';
 @override String get completeRegistration => 'ලියාපදිංචිය සම්පූර්ණ කරන්න';
 
+
+//customer side
 // Customer Dashboard
 @override String get customerDashboard => 'පාරිභෝගිකයා';
 @override String get hello => 'ආයුබෝවන්';
@@ -416,5 +418,52 @@ String get restartAppForComplete => 'භාෂාව යාවත්කාලී
 
 @override
 String get okay => 'හරි';
+
+//collector side
+//collector dashboard
+
+//collector side
+//collector dashboard
+@override
+String get collectorDashboard => 'එකතුකරන්නා';
+
+@override
+String get readyToCollectToday => 'අද එකතු කිරීමට සූදානම්ද?';
+
+@override
+String get customerList => 'පාරිභෝගික ලැයිස්තුව';
+
+@override
+String get viewAllCustomers => 'සියළුම පාරිභෝගිකයින් බලන්න';
+
+@override
+String get history => 'ඉතිහාසය';
+
+@override
+String get viewPastCollections => 'පසුගිය එකතුකිරීම් බලන්න';
+
+@override
+String get mapView => 'සිතියම් දර්ශනය';
+
+@override
+String get seeCustomerLocations => 'පාරිභෝගික ස්ථාන බලන්න';
+
+@override
+String get profileSettings => 'පැතිකඩ සැකසීම්';
+
+@override
+String get manageCollectorProfile => 'ඔබේ එකතුකරන්නාගේ පැතිකඩ කළමනාකරණය කරන්න';
+
+@override
+String get chooseActionToStart => 'ආරම්භ කිරීමට ක්‍රියාවක් තෝරන්න';
+
+@override
+String get logout => 'ඉවත් වන්න';
+
+@override
+String get areYouSureLogout => 'ඔබට ලොග් අවුට් වීමට අවශ්‍යද?';
+
+@override
+String get map => 'සිතියම';
 
 }

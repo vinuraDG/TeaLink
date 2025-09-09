@@ -556,7 +556,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                             onTap: () => Navigator.pushNamed(context, '/signin'),
                             child: Text(
                               loc.signInHere,
-                              style: TextStyle(color: kMainColor, fontSize: 14, fontWeight: FontWeight.w600),
+                              style: TextStyle(color: kMainColor, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],

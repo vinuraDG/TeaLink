@@ -136,6 +136,8 @@ String get signUpHere => 'Sign up here';
 @override String get availableCollectors => 'Available Collectors';
 @override String get completeRegistration => 'Complete Registration';
 
+
+//customer side
 // Customer Dashboard
 @override String get customerDashboard => 'CUSTOMER';
 @override String get hello => 'Hello';
@@ -415,7 +417,50 @@ String get restartAppForComplete => 'The language has been updated. Some parts o
 @override
 String get okay => 'OK';
 
+//collector side 
+//collector dashboard
 
 
+@override
+String get collectorDashboard => 'COLLECTOR';
+
+@override
+String get readyToCollectToday => 'Ready to collect today?';
+
+@override
+String get customerList => 'Customer List';
+
+@override
+String get viewAllCustomers => 'View all customers';
+
+@override
+String get history => 'History';
+
+@override
+String get viewPastCollections => 'View past collections';
+
+@override
+String get mapView => 'Map View';
+
+@override
+String get seeCustomerLocations => 'See customer locations';
+
+@override
+String get profileSettings => 'Profile Settings';
+
+@override
+String get manageCollectorProfile => 'Manage your collector profile';
+
+@override
+String get chooseActionToStart => 'Choose an action to get started';
+
+@override
+String get logout => 'Logout';
+
+@override
+String get areYouSureLogout => 'Are you sure you want to logout?';
+
+@override
+String get map => 'Map';
 
 }

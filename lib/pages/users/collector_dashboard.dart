@@ -1,9 +1,9 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:TeaLink/pages/login_page.dart';
-
 
 
 class CollectorDashboard extends StatefulWidget {
@@ -17,7 +17,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
     with TickerProviderStateMixin {
   int _selectedIndex = 0;
   String userName = "";
-  String greeting = "";
+  String greeting = ""; // Default empty, will be set after build
   AnimationController? _animationController;
   Animation<double>? _fadeAnimation;
   Animation<Offset>? _slideAnimation;
@@ -25,9 +25,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
   @override
   void initState() {
     super.initState();
-    _fetchUserName();
-    _setGreeting();
     
+    // Initialize animations
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
@@ -50,6 +49,14 @@ class _CollectorDashboardState extends State<CollectorDashboard>
     ));
     
     _animationController!.forward();
+    
+    // Use WidgetsBinding to delay initialization until after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _setGreeting();
+        _fetchUserName();
+      }
+    });
   }
 
   @override
@@ -59,28 +66,39 @@ class _CollectorDashboardState extends State<CollectorDashboard>
   }
 
   void _setGreeting() {
+    if (!mounted) return;
+    
+    final l10n = AppLocalizations.of(context)!;
     final hour = DateTime.now().hour;
-    if (hour < 12) {
-      greeting = "Good Morning!";
-    } else if (hour < 17) {
-      greeting = "Good Afternoon!";
-    } else {
-      greeting = "Good Evening!";
+    
+    if (mounted) {
+      setState(() {
+        if (hour < 12) {
+          greeting = l10n.goodMorning ?? "Good Morning!";
+        } else if (hour < 17) {
+          greeting = l10n.goodAfternoon ?? "Good Afternoon!";
+        } else {
+          greeting = l10n.goodEvening ?? "Good Evening!";
+        }
+      });
     }
   }
 
   Future<void> _fetchUserName() async {
+    if (!mounted) return;
+    
     try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
+      if (user != null && mounted) {
         final doc = await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
             .get();
 
-        if (doc.exists && doc.data() != null) {
+        if (doc.exists && doc.data() != null && mounted) {
+          final l10n = AppLocalizations.of(context)!;
           setState(() {
-            userName = doc['name'] ?? 'User';
+            userName = doc['name'] ?? l10n.user ?? 'User';
           });
         }
       }
@@ -90,6 +108,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
   }
 
   void _onItemTapped(int index) {
+    if (!mounted) return;
     setState(() => _selectedIndex = index);
 
     switch (index) {
@@ -112,6 +131,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
+    final l10n = AppLocalizations.of(context)!;
     
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -133,9 +153,9 @@ class _CollectorDashboardState extends State<CollectorDashboard>
               width: 1,
             ),
           ),
-          child: const Text(
-            'COLLECTOR',
-            style: TextStyle(
+          child: Text(
+            l10n.collectorDashboard,
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: kWhite,
@@ -220,168 +240,10 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                           opacity: _fadeAnimation!,
                           child: SlideTransition(
                             position: _slideAnimation!,
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        greeting,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white70,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        userName.isNotEmpty ? userName : 'Loading...',
-                                        style: const TextStyle(
-                                          fontSize: 28,
-                                          fontWeight: FontWeight.bold,
-                                          color: kWhite,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 12,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.2),
-                                          borderRadius: BorderRadius.circular(15),
-                                        ),
-                                        child: Text(
-                                          "Ready to collect today?",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white.withOpacity(0.9),
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Enhanced Profile Avatar
-                                Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.white.withOpacity(0.3),
-                                        Colors.white.withOpacity(0.1),
-                                      ],
-                                    ),
-                                  ),
-                                  child: Container(
-                                    width: 80,
-                                    height: 80,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: kWhite, width: 3),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          spreadRadius: 2,
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                      image: const DecorationImage(
-                                        fit: BoxFit.cover,
-                                        image: AssetImage('assets/images/avatar.jpg'),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            child: _buildGreetingRow(l10n),
                           ),
                         )
-                      : Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    greeting,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    userName.isNotEmpty ? userName : 'Loading...',
-                                    style: const TextStyle(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.bold,
-                                      color: kWhite,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(15),
-                                    ),
-                                    child: Text(
-                                      "Ready to collect today?",
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white.withOpacity(0.9),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            // Enhanced Profile Avatar
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Colors.white.withOpacity(0.3),
-                                    Colors.white.withOpacity(0.1),
-                                  ],
-                                ),
-                              ),
-                              child: Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: kWhite, width: 3),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      spreadRadius: 2,
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                  image: const DecorationImage(
-                                    fit: BoxFit.cover,
-                                    image: AssetImage('assets/images/avatar.jpg'),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      : _buildGreetingRow(l10n),
                 ],
               ),
             ),
@@ -398,170 +260,10 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                         opacity: _fadeAnimation!,
                         child: SlideTransition(
                           position: _slideAnimation!,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Quick Actions",
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Choose an action to get started",
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              const SizedBox(height: 25),
-                              
-                              // Grid Cards - Using shrinkWrap instead of fixed height
-                              GridView.count(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 16,
-                                mainAxisSpacing: 16,
-                                childAspectRatio: screenWidth > 400 ? 1.1 : 1.0,
-                                children: [
-                                  _buildEnhancedDashboardCard(
-                                    title: "Customer List",
-                                    subtitle: "View all customers",
-                                    icon: Icons.people,
-                                    color: Colors.blue,
-                                    delay: 0,
-                                    onTap: () => Navigator.pushNamed(
-                                      context,
-                                      '/collector_customer_list',
-                                    ),
-                                  ),
-                                  _buildEnhancedDashboardCard(
-                                    title: "History",
-                                    subtitle: "View past collections",
-                                    icon: Icons.history,
-                                    color: Colors.purple,
-                                    delay: 300,
-                                    onTap: () => Navigator.pushNamed(
-                                      context,
-                                      '/collector_history',
-                                    ),
-                                  ),
-                                  _buildEnhancedDashboardCard(
-                                    title: "Map View",
-                                    subtitle: "See customer locations",
-                                    icon: Icons.map_outlined,
-                                    color: Colors.orange,
-                                    delay: 200,
-                                    onTap: () => Navigator.pushNamed(
-                                      context,
-                                      '/collector_map',
-                                    ),
-                                  ),
-                                  _buildEnhancedDashboardCard(
-                                    title: "Profile Settings",
-                                    subtitle: "Manage your collector profile",
-                                    icon: Icons.settings,
-                                    color: kMainColor,
-                                    delay: 300,
-                                    onTap: () => Navigator.pushNamed(
-                                      context,
-                                      '/collector_profile',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              
-                         
-                            ],
-                          ),
+                          child: _buildDashboardContent(l10n, screenWidth),
                         ),
                       )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Quick Actions",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Choose an action to get started",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                          const SizedBox(height: 25),
-                          
-                          // Grid Cards - Using shrinkWrap instead of fixed height
-                          GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: screenWidth > 400 ? 1.1 : 1.0,
-                            children: [
-                              _buildEnhancedDashboardCard(
-                                title: "Customer List",
-                                subtitle: "View all customers",
-                                icon: Icons.people,
-                                color: Colors.blue,
-                                delay: 0,
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/collector_customer_list',
-                                ),
-                              ),
-                              _buildEnhancedDashboardCard(
-                                title: "Add Weight",
-                                subtitle: "Record new collection",
-                                icon: Icons.add_circle_outline,
-                                color: Colors.green,
-                                delay: 100,
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/collector_add_weight',
-                                ),
-                              ),
-                              _buildEnhancedDashboardCard(
-                                title: "Map View",
-                                subtitle: "See customer locations",
-                                icon: Icons.map_outlined,
-                                color: Colors.orange,
-                                delay: 200,
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/collector_map',
-                                ),
-                              ),
-                              _buildEnhancedDashboardCard(
-                                title: "History",
-                                subtitle: "View past collections",
-                                icon: Icons.history,
-                                color: Colors.purple,
-                                delay: 300,
-                                onTap: () => Navigator.pushNamed(
-                                  context,
-                                  '/collector_history',
-                                ),
-                              ),
-                            ],
-                          ),
-                          
-                      
-                          
-                         
-                        ],
-                      ),
+                    : _buildDashboardContent(l10n, screenWidth),
               ),
             ),
           ),
@@ -600,27 +302,191 @@ class _CollectorDashboardState extends State<CollectorDashboard>
             elevation: 0,
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 26),
-                label: 'Home',
+                icon: const Icon(Icons.home_rounded, size: 26),
+                label: l10n.home,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map_sharp, size: 26),
-                label: 'Map',
+                icon: const Icon(Icons.map_sharp, size: 26),
+                label: l10n.map,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: 26),
-                label: 'History',
+                icon: const Icon(Icons.history, size: 26),
+                label: l10n.history,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 26),
-                label: 'Profile',
+                icon: const Icon(Icons.person, size: 26),
+                label: l10n.profile,
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildGreetingRow(AppLocalizations l10n) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                greeting.isEmpty ? "Hello!" : greeting,
+                style: const TextStyle(
+                  fontSize: 16,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                userName.isEmpty ? (l10n.loading ?? "Loading...") : userName,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: kWhite,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Text(
+                  l10n.readyToCollectToday ?? "Ready to collect today!",
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Enhanced Profile Avatar
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [
+                Colors.white.withOpacity(0.3),
+                Colors.white.withOpacity(0.1),
+              ],
+            ),
+          ),
+          child: Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: kWhite, width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  spreadRadius: 2,
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+              image: const DecorationImage(
+                fit: BoxFit.cover,
+                image: AssetImage('assets/images/avatar.jpg'),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDashboardContent(AppLocalizations l10n, double screenWidth) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l10n.quickActions ?? "Quick Actions",
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          l10n.chooseActionToStart ?? "Choose an action to start",
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 25),
+        
+        // Grid Cards - Using shrinkWrap instead of fixed height
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: screenWidth > 400 ? 1.1 : 1.0,
+          children: [
+            _buildEnhancedDashboardCard(
+              title: l10n.customerList ?? "Customer List",
+              subtitle: l10n.viewAllCustomers ?? "View all customers",
+              icon: Icons.people,
+              color: Colors.blue,
+              delay: 0,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/collector_customer_list',
+              ),
+            ),
+            _buildEnhancedDashboardCard(
+              title: l10n.history ?? "History",
+              subtitle: l10n.viewPastCollections ?? "View past collections",
+              icon: Icons.history,
+              color: Colors.purple,
+              delay: 300,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/collector_history',
+              ),
+            ),
+            _buildEnhancedDashboardCard(
+              title: l10n.mapView ?? "Map View",
+              subtitle: l10n.seeCustomerLocations ?? "See customer locations",
+              icon: Icons.map_outlined,
+              color: Colors.orange,
+              delay: 200,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/collector_map',
+              ),
+            ),
+            _buildEnhancedDashboardCard(
+              title: l10n.profileSettings ?? "Profile Settings",
+              subtitle: l10n.manageCollectorProfile ?? "Manage collector profile",
+              icon: Icons.settings,
+              color: kMainColor,
+              delay: 300,
+              onTap: () => Navigator.pushNamed(
+                context,
+                '/collector_profile',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -665,8 +531,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 50,
-                          height: 50,
+                          width: 45,
+                          height: 45,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,
@@ -696,7 +562,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                         Text(
                           title,
                           style: const TextStyle(
-                            fontSize: 17,
+                            fontSize: 15,
                             fontWeight: FontWeight.w900,
                             color: Colors.black87,
                           ),
@@ -708,9 +574,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                         Text(
                           subtitle,
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 11,
                             color: Colors.grey[600],
-                            
                           ),
                           textAlign: TextAlign.center,
                           maxLines: 2,
@@ -728,8 +593,9 @@ class _CollectorDashboardState extends State<CollectorDashboard>
     );
   }
 
-  
   void _showLogoutDialog() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -737,16 +603,16 @@ class _CollectorDashboardState extends State<CollectorDashboard>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: const Text(
-            "Logout",
-            style: TextStyle(fontWeight: FontWeight.bold),
+          title: Text(
+            l10n.logout ?? "Logout",
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          content: const Text("Are you sure you want to logout?"),
+          content: Text(l10n.areYouSureLogout ?? "Are you sure you want to logout?"),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
               child: Text(
-                "Cancel",
+                l10n.cancel ?? "Cancel",
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ),
@@ -762,7 +628,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: const Text("Logout"),
+              child: Text(l10n.logout ?? "Logout"),
             ),
           ],
         );

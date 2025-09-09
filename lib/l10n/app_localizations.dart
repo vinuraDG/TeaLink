@@ -104,6 +104,8 @@ String get noCollectors;
 String get availableCollectors;
 String get completeRegistration;
 
+
+//customer side
 // -----------------------------
 // Customer Dashboard strings
 // -----------------------------
@@ -249,6 +251,28 @@ String get failedToUpdateLanguage;
 String get languageChanged;
 String get restartAppForComplete;
 String get okay;
+
+//collector side
+
+// Collector Dashboard 
+//collector side
+//collector dashboard
+
+String get collectorDashboard ;
+String get readyToCollectToday ;
+String get customerList;
+String get viewAllCustomers;
+String get history ;
+String get viewPastCollections ;
+String get mapView ;
+String get seeCustomerLocations ;
+String get profileSettings ;
+String get manageCollectorProfile ;
+String get chooseActionToStart ;
+String get logout;
+String get areYouSureLogout;
+String get map ;
+
 
 }
 

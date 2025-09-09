@@ -10,7 +10,6 @@ import 'package:TeaLink/pages/users/customer_cards/collector_info.dart';
 import 'package:TeaLink/pages/users/customer_cards/customer_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/customer_payment.dart';
 import 'package:TeaLink/pages/users/customer_cards/trend.dart';
-import 'package:TeaLink/services/theme_service.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -83,15 +82,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: "TeaLink",
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-            fontFamily: getFontFamily(languageProvider.currentLocale),
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(fontSize: 16),
-              bodyMedium: TextStyle(fontSize: 14),
-              labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-          ),
-
+            theme: ThemeData(fontFamily: "Inter"),
             
             // Localization configuration
             localizationsDelegates: const [

@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
+import 'package:TeaLink/services/language_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
@@ -20,69 +22,36 @@ class _CollectorProfileState extends State<CollectorProfile> {
 
   String? profileImageUrl;
   String? registrationNumber;
+  String? selectedLanguage;
   int _selectedIndex = 3;
 
   late TextEditingController nameController;
   late TextEditingController phoneController;
   bool isLoading = true;
-  
-  void _editName() {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
-            children: [
-              Icon(Icons.edit, color: kMainColor, size: 24),
-              const SizedBox(width: 8),
-              const Text("Edit Name", style: TextStyle(fontWeight: FontWeight.bold)),
-            ],
-          ),
-          content: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                hintText: "Enter your name",
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text("Cancel", style: TextStyle(color: Colors.grey.shade600)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {});
-                Navigator.pop(ctx);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: kMainColor,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
-  }
+
+  // Language options
+  final Map<String, String> _languageOptions = {
+    'en': 'English',
+    'si': 'සිංහල',
+  };
 
   @override
   void initState() {
     super.initState();
     nameController = TextEditingController();
     phoneController = TextEditingController();
-    _loadProfile();
+    // Use WidgetsBinding to ensure the widget tree is fully built before loading data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadProfile();
+      _loadUserLanguagePreference();
+    });
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadProfile() async {
@@ -101,15 +70,19 @@ class _CollectorProfileState extends State<CollectorProfile> {
           'profileImage': '',
           'registrationNumber': regNum,
           'userType': 'collector', // Add user type
+          'language': 'en', // Default language
           'createdAt': FieldValue.serverTimestamp(),
         });
 
-        setState(() {
-          registrationNumber = regNum;
-          nameController.text = user.displayName ?? '';
-          phoneController.text = '';
-          profileImageUrl = '';
-        });
+        if (mounted) {
+          setState(() {
+            registrationNumber = regNum;
+            nameController.text = user.displayName ?? '';
+            phoneController.text = '';
+            profileImageUrl = '';
+            selectedLanguage = 'en';
+          });
+        }
       } else {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
         
@@ -122,97 +95,339 @@ class _CollectorProfileState extends State<CollectorProfile> {
           });
         }
         
-        setState(() {
-          nameController.text = data['name'] as String? ?? '';
-          phoneController.text = data['phone'] as String? ?? '';
-          registrationNumber = regNum;
-          profileImageUrl = data['profileImage'] as String? ?? '';
-        });
+        if (mounted) {
+          setState(() {
+            nameController.text = data['name'] as String? ?? '';
+            phoneController.text = data['phone'] as String? ?? '';
+            registrationNumber = regNum;
+            profileImageUrl = data['profileImage'] as String? ?? '';
+            selectedLanguage = data['language'] ?? 'en';
+          });
+        }
+
+        // If language is not set, set default and update Firestore
+        if ((selectedLanguage == null || selectedLanguage!.isEmpty) && mounted) {
+          await _firestore.collection('users').doc(user.uid).update({
+            'language': 'en',
+          });
+
+          if (mounted) {
+            setState(() {
+              selectedLanguage = 'en';
+            });
+          }
+        }
       }
     } catch (e) {
       debugPrint("Error loading profile: $e");
       // Generate a fallback registration number
-      setState(() {
-        registrationNumber = 'COL-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
-      });
+      if (mounted) {
+        setState(() {
+          registrationNumber = 'COL-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}';
+          selectedLanguage = 'en'; // Fallback language
+        });
+      }
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
+  // Enhanced method to handle language loading on profile initialization
+  Future<void> _loadUserLanguagePreference() async {
+    try {
+      // Get language from LanguageService with fallback chain
+      String? userLanguage = await LanguageService.getLanguageLocally();
+      
+      // If no local language, try Firestore
+      if (userLanguage == null) {
+        userLanguage = await LanguageService.getLanguageFromFirestore();
+      }
+      
+      // Set default if still null
+      userLanguage ??= 'en';
+      
+      if (mounted) {
+        setState(() {
+          selectedLanguage = userLanguage;
+        });
+      }
+      
+      // Ensure local storage is synced
+      await LanguageService.saveLanguageLocally(userLanguage);
+      
+    } catch (e) {
+      debugPrint('Error loading language preference: $e');
+      if (mounted) {
+        setState(() {
+          selectedLanguage = 'en'; // Fallback to English
+        });
+      }
+    }
+  }
+
+  void _editName() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              Icon(Icons.edit, color: kMainColor, size: 24),
+              const SizedBox(width: 8),
+              Text(l10n.editName, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                hintText: l10n.enterYourName,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                prefixIcon: const Icon(Icons.person_outline),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel, style: TextStyle(color: Colors.grey.shade600)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (mounted) setState(() {});
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kMainColor,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(l10n.save),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Method for changing language
+  Future<void> _changeLanguage() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.language, color: kMainColor, size: 24),
+              const SizedBox(width: 8),
+              Text(l10n.language, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: _languageOptions.entries.map((entry) {
+              return RadioListTile<String>(
+                title: Text(entry.value),
+                value: entry.key,
+                groupValue: selectedLanguage,
+                activeColor: kMainColor,
+                onChanged: (value) async {
+                  if (value != null && value != selectedLanguage && mounted) {
+                    // Update local state
+                    setState(() {
+                      selectedLanguage = value;
+                    });
+                    
+                    // Save to both local storage and Firestore
+                    try {
+                      await LanguageService.saveLanguageLocally(value);
+                      await LanguageService.changeLanguage(value);
+                      
+                      // Update Firestore
+                      await _firestore.collection('users').doc(user.uid).update({
+                        'language': value,
+                        'updatedAt': FieldValue.serverTimestamp(),
+                      });
+                      
+                      Navigator.pop(ctx);
+                      if (mounted) {
+                        _showSuccessSnackBar(l10n.languageUpdatedSuccessfully);
+                        // Show language change dialog
+                        _showLanguageChangeDialog();
+                      }
+                      
+                    } catch (e) {
+                      Navigator.pop(ctx);
+                      if (mounted) {
+                        _showErrorSnackBar('Failed to update language: $e');
+                      }
+                    }
+                  }
+                },
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(l10n.cancel),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showLanguageChangeDialog() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.info_outline, color: kMainColor, size: 48),
+            const SizedBox(height: 12),
+            Text(
+              l10n.languageChanged,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+        content: Text(
+          l10n.restartAppForComplete,
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(ctx),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kMainColor,
+                foregroundColor: Colors.white,
+              ),
+              child: Text(l10n.okay),
+            ),
+          ),
+        ],
+      )
+    );
+  }
+
   Future<void> _pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (pickedFile == null) return;
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    try {
+      final pickedFile = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
+      
+      if (pickedFile == null) return;
 
-    File file = File(pickedFile.path);
-    final ref =
-        FirebaseStorage.instance.ref().child('profilePics/${user.uid}.jpg');
-    await ref.putFile(file);
-    String downloadUrl = await ref.getDownloadURL();
+      if (mounted) _showLoadingSnackBar(l10n.uploadingImage);
 
-    setState(() => profileImageUrl = downloadUrl);
+      File file = File(pickedFile.path);
+      final ref = FirebaseStorage.instance.ref().child('profilePics/${user.uid}.jpg');
+      
+      await ref.putFile(file);
+      String downloadUrl = await ref.getDownloadURL();
+
+      if (mounted) {
+        setState(() => profileImageUrl = downloadUrl);
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showSuccessSnackBar(l10n.profileImageUpdatedSuccessfully);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showErrorSnackBar('${l10n.failedToUploadImage}: $e');
+      }
+    }
   }
 
   Future<void> _saveProfile() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
+    if (nameController.text.trim().isEmpty) {
+      _showErrorSnackBar(l10n.nameCannotBeEmpty);
+      return;
+    }
+
     try {
+      _showLoadingSnackBar(l10n.savingProfile);
+
+      // Ensure language is properly set
+      String languageToSave = selectedLanguage ?? 'en';
+
       await _firestore.collection('users').doc(user.uid).update({
-        'name': nameController.text,
-        'phone': phoneController.text,
+        'name': nameController.text.trim(),
+        'phone': phoneController.text.trim(),
         'profileImage': profileImageUrl ?? '',
+        'language': languageToSave,
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Profile updated successfully!'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      // Also save language locally
+      await LanguageService.saveLanguageLocally(languageToSave);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showSuccessSnackBar(l10n.profileUpdatedSuccessfully);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 8),
-              Text('Failed to update profile: $e'),
-            ],
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showErrorSnackBar('${l10n.failedToUpdateProfile}: $e');
+      }
     }
   }
 
   Future<void> _deleteAccount() async {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     final passwordController = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.warning, color: Colors.red, size: 24),
-            SizedBox(width: 8),
-            Text("Confirm Deletion", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+            const Icon(Icons.warning, color: Colors.red, size: 24),
+            const SizedBox(width: 8),
+            Text(l10n.deleteAccountTitle, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              "This action cannot be undone. Enter your password to confirm account deletion.",
-              style: TextStyle(fontSize: 14),
+            Text(
+              l10n.deleteAccountWarning,
+              style: const TextStyle(fontSize: 14),
             ),
             const SizedBox(height: 16),
             Container(
@@ -223,11 +438,11 @@ class _CollectorProfileState extends State<CollectorProfile> {
               child: TextField(
                 controller: passwordController,
                 obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: "Password",
+                decoration: InputDecoration(
+                  labelText: l10n.enterYourPassword,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  prefixIcon: Icon(Icons.lock_outline),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  prefixIcon: const Icon(Icons.lock_outline),
                 ),
               ),
             ),
@@ -236,7 +451,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text("Cancel", style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(l10n.cancel, style: TextStyle(color: Colors.grey.shade600)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -245,15 +460,17 @@ class _CollectorProfileState extends State<CollectorProfile> {
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text("Delete"),
+            child: Text(l10n.deleteAccount),
           ),
         ],
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     try {
+      _showLoadingSnackBar(l10n.deletingAccount);
+
       final cred = EmailAuthProvider.credential(
           email: user.email!, password: passwordController.text);
       await user.reauthenticateWithCredential(cred);
@@ -261,25 +478,80 @@ class _CollectorProfileState extends State<CollectorProfile> {
       await _firestore.collection('users').doc(user.uid).delete();
       await user.delete();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 8),
-              Text('Error deleting account: $e'),
-            ],
-          ),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showErrorSnackBar('${l10n.errorDeletingAccount}: $e');
+      }
     }
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.error, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
+  void _showLoadingSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: kMainColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 30),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     if (isLoading) {
       return Scaffold(
         backgroundColor: kWhite,
@@ -289,7 +561,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
             children: [
               CircularProgressIndicator(color: kMainColor),
               const SizedBox(height: 16),
-              const Text("Loading Profile...", style: TextStyle(fontSize: 16)),
+              Text(l10n.loadingYourProfile, style: const TextStyle(fontSize: 16)),
             ],
           ),
         ),
@@ -301,8 +573,8 @@ class _CollectorProfileState extends State<CollectorProfile> {
       appBar: AppBar(
         backgroundColor: kMainColor,
         elevation: 0,
-        title: const Text("Profile",
-            style: TextStyle(
+        title: Text(l10n.profile,
+            style: const TextStyle(
                 fontSize: 25, fontWeight: FontWeight.w900, color: Colors.white)),
         centerTitle: true,
         leading: IconButton(
@@ -376,7 +648,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    nameController.text.isEmpty ? "Your Name" : nameController.text,
+                    nameController.text.isEmpty ? l10n.welcome : nameController.text,
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -401,7 +673,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
                       border: Border.all(color: Colors.white.withOpacity(0.3)),
                     ),
                     child: Text(
-                      'ID: ${registrationNumber ?? "Loading..."}',
+                      'ID: ${registrationNumber ?? l10n.generating}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -432,28 +704,69 @@ class _CollectorProfileState extends State<CollectorProfile> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Padding(
-                    padding: EdgeInsets.all(20),
+                  Padding(
+                    padding: const EdgeInsets.all(20),
                     child: Text(
-                      "Personal Information",
-                      style: TextStyle(
+                      l10n.personalInformation,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.black87,
                       ),
                     ),
                   ),
-                  _buildProfileCard("Full Name", nameController.text, Icons.person, _editName),
+                  _buildProfileCard(l10n.fullName, nameController.text, Icons.person, _editName),
                   const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildProfileCard("Email Address", user.email ?? '', Icons.email, null, readOnly: true),
+                  _buildProfileCard(l10n.emailAddress, user.email ?? '', Icons.email, null, readOnly: true),
                   const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildProfileCard("Phone Number", phoneController.text.isEmpty ? "Not provided" : phoneController.text, Icons.phone, _editPhone),
+                  _buildProfileCard(l10n.phoneNumber, phoneController.text.isEmpty ? l10n.tapToAdd : phoneController.text, Icons.phone, _editPhone),
                   const Divider(height: 1, indent: 20, endIndent: 20),
-                  _buildProfileCard("Collector ID", registrationNumber ?? 'Generating...', Icons.badge, null, readOnly: true),
+                  _buildProfileCard(l10n.registrationID, registrationNumber ?? l10n.generating, Icons.badge, null, readOnly: true),
                   const SizedBox(height: 20),
                 ],
               ),
             ),
+
+            // App Settings Section
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      l10n.appSettings,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                  _buildProfileCard(
+                    l10n.language,
+                    _languageOptions[selectedLanguage] ?? 'English',
+                    Icons.language,
+                    _changeLanguage
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
 
             // Action Buttons Section
             Padding(
@@ -473,14 +786,14 @@ class _CollectorProfileState extends State<CollectorProfile> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.save, size: 20),
-                          SizedBox(width: 8),
+                          const Icon(Icons.save, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            "Save Changes",
-                            style: TextStyle(
+                            l10n.saveChanges,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -502,14 +815,14 @@ class _CollectorProfileState extends State<CollectorProfile> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.delete_outline, size: 20),
-                          SizedBox(width: 8),
+                          const Icon(Icons.delete_outline, size: 20),
+                          const SizedBox(width: 8),
                           Text(
-                            "Delete Account",
-                            style: TextStyle(
+                            l10n.deleteAccount,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
@@ -558,22 +871,22 @@ class _CollectorProfileState extends State<CollectorProfile> {
             elevation: 0,
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 26),
-                label: 'Home',
+                icon: const Icon(Icons.home_rounded, size: 26),
+                label: l10n.home,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map_sharp, size: 26),
-                label: 'Map',
+                icon: const Icon(Icons.map_sharp, size: 26),
+                label: l10n.map ?? 'Map',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: 26),
-                label: 'History',
+                icon: const Icon(Icons.history, size: 26),
+                label: l10n.history ?? 'History',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 26),
-                label: 'Profile',
+                icon: const Icon(Icons.person, size: 26),
+                label: l10n.profile,
               ),
             ],
           ),
@@ -583,6 +896,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
   }
 
   Widget _buildProfileCard(String title, String value, IconData icon, VoidCallback? onEdit, {bool readOnly = false}) {
+    final l10n = AppLocalizations.of(context)!;
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
@@ -602,7 +916,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
         ),
       ),
       subtitle: Text(
-        value.isEmpty ? "Not provided" : value,
+        value.isEmpty ? l10n.tapToAdd : value,
         style: TextStyle(
           fontSize: 16,
           color: value.isEmpty ? Colors.grey : Colors.black54,
@@ -626,6 +940,8 @@ class _CollectorProfileState extends State<CollectorProfile> {
   }
 
   void _editPhone() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
       builder: (ctx) {
@@ -635,7 +951,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
             children: [
               Icon(Icons.phone, color: kMainColor, size: 24),
               const SizedBox(width: 8),
-              const Text("Edit Phone Number", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.editPhoneNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
           content: Container(
@@ -646,22 +962,22 @@ class _CollectorProfileState extends State<CollectorProfile> {
             child: TextField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: "Enter your phone number",
+              decoration: InputDecoration(
+                hintText: l10n.enterYourPhoneNumber,
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                prefixIcon: Icon(Icons.phone_outlined),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                prefixIcon: const Icon(Icons.phone_outlined),
               ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text("Cancel", style: TextStyle(color: Colors.grey.shade600)),
+              child: Text(l10n.cancel, style: TextStyle(color: Colors.grey.shade600)),
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {});
+                if (mounted) setState(() {});
                 Navigator.pop(ctx);
               },
               style: ElevatedButton.styleFrom(
@@ -669,7 +985,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text("Save"),
+              child: Text(l10n.save),
             ),
           ],
         );
@@ -678,6 +994,7 @@ class _CollectorProfileState extends State<CollectorProfile> {
   }
 
   void _onItemTapped(int index) {
+    if (!mounted) return;
     setState(() => _selectedIndex = index);
 
     switch (index) {

@@ -134,90 +134,12 @@ Future<void> fetchWeeklyHarvest() async {
     final now = DateTime.now();
     print('Current date: $now');
     
-    // Try multiple week calculation methods to find the correct one
-    final weekIds = [
-      "${now.year}-W${_getISOWeekNumber(now).toString().padLeft(2, '0')}",
-      "${now.year}-W${_getSimpleWeekNumber(now)}",
-      "${now.year}-W1", // Since your data shows 2025-W1
-    ];
+    // Get current week ID
+    final currentWeekId = _getCurrentWeekId(now);
+    print('Current week ID: $currentWeekId');
     
-    print('Trying week IDs: $weekIds');
-
-    // Try each week ID until we find data
-    for (String weekId in weekIds) {
-      print('Checking weekly collection for weekId: $weekId');
-      
-      try {
-        final weeklyDoc = await FirebaseFirestore.instance
-            .collection('customers')
-            .doc(regNo)
-            .collection('weekly')
-            .doc(weekId)
-            .get();
-        
-        print('Weekly doc exists for $weekId: ${weeklyDoc.exists}');
-        
-        if (weeklyDoc.exists) {
-          final weeklyData = weeklyDoc.data() as Map<String, dynamic>?;
-          print('Weekly doc data: $weeklyData');
-          
-          if (weeklyData != null && weeklyData['total'] != null) {
-            final total = weeklyData['total'];
-            print('Weekly total found: $total for week $weekId');
-            
-            if (mounted) {
-              setState(() {
-                weeklyHarvest = "${total}kg";
-              });
-            }
-            print('Weekly harvest updated to: $weeklyHarvest');
-            return;
-          }
-        }
-      } catch (e) {
-        print('Error checking weekId $weekId: $e');
-        continue;
-      }
-    }
-
-    print('No weekly total found in any week format, checking all weekly documents...');
-    
-    // If no specific week found, get the most recent weekly total
-    try {
-      final weeklySnapshot = await FirebaseFirestore.instance
-          .collection('customers')
-          .doc(regNo)
-          .collection('weekly')
-          .orderBy('updatedAt', descending: true)
-          .limit(1)
-          .get();
-      
-      print('Most recent weekly docs found: ${weeklySnapshot.docs.length}');
-      
-      if (weeklySnapshot.docs.isNotEmpty) {
-        final mostRecentDoc = weeklySnapshot.docs.first;
-        final weeklyData = mostRecentDoc.data();
-        print('Most recent weekly data: $weeklyData');
-        
-        if (weeklyData['total'] != null) {
-          final total = weeklyData['total'];
-          print('Using most recent weekly total: $total from ${mostRecentDoc.id}');
-          
-          if (mounted) {
-            setState(() {
-              weeklyHarvest = "${total}kg";
-            });
-          }
-          return;
-        }
-      }
-    } catch (e) {
-      print('Error getting recent weekly data: $e');
-    }
-
-    // If still no data, calculate from harvests
-    print('No weekly data found, calculating from harvests...');
-    await _calculateFromHarvests(regNo, now);
+    // Get or create weekly document and display total
+    await _getWeeklyTotal(regNo, currentWeekId);
 
   } catch (e) {
     print('Error in fetchWeeklyHarvest: $e');
@@ -230,54 +152,287 @@ Future<void> fetchWeeklyHarvest() async {
   print('=== fetchWeeklyHarvest completed ===');
 }
 
-Future<void> _calculateFromHarvests(String regNo, DateTime now) async {
+String _getCurrentWeekId(DateTime date) {
+  final weekNumber = _getISOWeekNumber(date);
+  return "${date.year}-W${weekNumber.toString().padLeft(2, '0')}";
+}
+
+Future<void> _getWeeklyTotal(String regNo, String weekId) async {
   try {
-    // Calculate the start of the current week (Monday)
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final startOfWeekDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-    
-    // Calculate end of week (Sunday)
-    final endOfWeek = startOfWeekDate.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
-    
-    print('Calculating from harvests for week: $startOfWeekDate to $endOfWeek');
-    
-    final harvestsQuery = await FirebaseFirestore.instance
+    final weeklyDoc = await FirebaseFirestore.instance
         .collection('customers')
         .doc(regNo)
-        .collection('harvests')
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfWeekDate))
-        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfWeek))
+        .collection('weekly')
+        .doc(weekId)
         .get();
-
-    print('Harvests found: ${harvestsQuery.docs.length}');
-
-    double totalWeight = 0.0;
-    for (var doc in harvestsQuery.docs) {
-      final data = doc.data();
-      final weight = data['weight'];
+    
+    if (weeklyDoc.exists) {
+      final weeklyData = weeklyDoc.data() as Map<String, dynamic>;
+      final weeklyTotal = weeklyData['weeklyTotal'] ?? 0.0;
       
-      if (weight != null) {
-        if (weight is num) {
-          totalWeight += weight.toDouble();
-        } else if (weight is String) {
-          totalWeight += double.tryParse(weight) ?? 0.0;
-        }
+      if (mounted) {
+        setState(() {
+          weeklyHarvest = "${weeklyTotal}kg";
+        });
       }
-    }
-
-    print('Calculated total: ${totalWeight}kg');
-
-    if (mounted) {
-      final formattedWeight = totalWeight == 0 ? '0' : totalWeight.toStringAsFixed(1);
-      setState(() {
-        weeklyHarvest = "${formattedWeight}kg";
-      });
+      print('Weekly total found: ${weeklyTotal}kg');
+    } else {
+      // Create weekly document with initial structure
+      await _createWeeklyDocument(regNo, weekId);
+      if (mounted) {
+        setState(() {
+          weeklyHarvest = '0kg';
+        });
+      }
+      print('Created new weekly document for $weekId');
     }
   } catch (e) {
-    print('Error calculating from harvests: $e');
+    print('Error getting weekly total: $e');
     if (mounted) {
       setState(() => weeklyHarvest = '0kg');
     }
+  }
+}
+
+Future<void> _createWeeklyDocument(String regNo, String weekId) async {
+  try {
+    final weeklyData = {
+      'weekId': weekId,
+      'monday': 0.0,
+      'tuesday': 0.0,
+      'wednesday': 0.0,
+      'thursday': 0.0,
+      'friday': 0.0,
+      'saturday': 0.0,
+      'weeklyTotal': 0.0,
+      'createdAt': Timestamp.now(),
+      'updatedAt': Timestamp.now(),
+    };
+    
+    await FirebaseFirestore.instance
+        .collection('customers')
+        .doc(regNo)
+        .collection('weekly')
+        .doc(weekId)
+        .set(weeklyData);
+    
+    print('Created weekly document structure for $weekId');
+  } catch (e) {
+    print('Error creating weekly document: $e');
+  }
+}
+
+// Function to save harvest data to weekly document (call this when harvest is created)
+Future<void> saveHarvestToWeekly(String regNo, double weight, DateTime harvestDate) async {
+  try {
+    final weekId = _getCurrentWeekId(harvestDate);
+    final dayOfWeek = harvestDate.weekday; // 1=Monday, 7=Sunday
+    
+    // Only save Monday to Saturday (1-6)
+    if (dayOfWeek < 1 || dayOfWeek > 6) {
+      print('Harvest date is not Monday-Saturday, skipping weekly update');
+      return;
+    }
+    
+    final dayField = _getDayFieldName(dayOfWeek);
+    
+    // Get current weekly document
+    final weeklyDocRef = FirebaseFirestore.instance
+        .collection('customers')
+        .doc(regNo)
+        .collection('weekly')
+        .doc(weekId);
+    
+    final weeklyDoc = await weeklyDocRef.get();
+    
+    if (!weeklyDoc.exists) {
+      await _createWeeklyDocument(regNo, weekId);
+    }
+    
+    // Update the specific day and recalculate weekly total
+    await FirebaseFirestore.instance.runTransaction((transaction) async {
+      final freshDoc = await transaction.get(weeklyDocRef);
+      final data = freshDoc.data() as Map<String, dynamic>;
+      
+      // Add weight to the specific day
+      final currentDayWeight = (data[dayField] ?? 0.0) as double;
+      final newDayWeight = currentDayWeight + weight;
+      
+      // Recalculate weekly total
+      final monday = dayField == 'monday' ? newDayWeight : (data['monday'] ?? 0.0) as double;
+      final tuesday = dayField == 'tuesday' ? newDayWeight : (data['tuesday'] ?? 0.0) as double;
+      final wednesday = dayField == 'wednesday' ? newDayWeight : (data['wednesday'] ?? 0.0) as double;
+      final thursday = dayField == 'thursday' ? newDayWeight : (data['thursday'] ?? 0.0) as double;
+      final friday = dayField == 'friday' ? newDayWeight : (data['friday'] ?? 0.0) as double;
+      final saturday = dayField == 'saturday' ? newDayWeight : (data['saturday'] ?? 0.0) as double;
+      
+      final weeklyTotal = monday + tuesday + wednesday + thursday + friday + saturday;
+      
+      // Update document
+      transaction.update(weeklyDocRef, {
+        dayField: newDayWeight,
+        'weeklyTotal': weeklyTotal,
+        'updatedAt': Timestamp.now(),
+      });
+      
+      print('Updated $dayField: ${newDayWeight}kg, Weekly total: ${weeklyTotal}kg');
+    });
+    
+  } catch (e) {
+    print('Error saving harvest to weekly: $e');
+  }
+}
+
+String _getDayFieldName(int weekday) {
+  switch (weekday) {
+    case 1: return 'monday';
+    case 2: return 'tuesday';
+    case 3: return 'wednesday';
+    case 4: return 'thursday';
+    case 5: return 'friday';
+    case 6: return 'saturday';
+    default: return 'unknown';
+  }
+}
+
+Future<void> _calculateWeeklyRange(String regNo, DateTime now) async {
+  try {
+    // Calculate the start of the current week (Monday)
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final mondayDate = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    
+    // Calculate Saturday (6th day of week, where Monday is 1st)
+    final saturdayDate = mondayDate.add(const Duration(days: 5));
+    final endOfSaturday = DateTime(saturdayDate.year, saturdayDate.month, saturdayDate.day, 23, 59, 59);
+    
+    print('Calculating weekly range from Monday: $mondayDate to Saturday: $saturdayDate');
+    
+    // Get all harvests from Monday to Saturday with proper error handling
+    QuerySnapshot? harvestsQuery;
+    try {
+      harvestsQuery = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(regNo)
+          .collection('harvests')
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(mondayDate))
+          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfSaturday))
+          .get();
+    } catch (e) {
+      print('Error querying harvests: $e');
+      // Try without orderBy in case of indexing issues
+      harvestsQuery = await FirebaseFirestore.instance
+          .collection('customers')
+          .doc(regNo)
+          .collection('harvests')
+          .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(mondayDate))
+          .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfSaturday))
+          .get();
+    }
+
+    print('Harvests found: ${harvestsQuery.docs.length}');
+
+    // Create a map to store daily totals
+    Map<int, double> dailyTotals = {
+      1: 0.0, // Monday
+      2: 0.0, // Tuesday
+      3: 0.0, // Wednesday
+      4: 0.0, // Thursday
+      5: 0.0, // Friday
+      6: 0.0, // Saturday
+    };
+
+    // Group harvests by day and calculate totals
+    for (var doc in harvestsQuery.docs) {
+      try {
+        final data = doc.data() as Map<String, dynamic>;
+        final weight = data['weight'];
+        final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+        
+        if (createdAt == null) {
+          print('Document ${doc.id} has no createdAt timestamp');
+          continue;
+        }
+        
+        // Get weekday (1 = Monday, 7 = Sunday)
+        final weekday = createdAt.weekday;
+        
+        // Only include Monday to Saturday (1-6)
+        if (weekday >= 1 && weekday <= 6) {
+          if (weight != null) {
+            double weightValue = 0.0;
+            if (weight is num) {
+              weightValue = weight.toDouble();
+            } else if (weight is String) {
+              weightValue = double.tryParse(weight) ?? 0.0;
+            }
+            dailyTotals[weekday] = (dailyTotals[weekday] ?? 0.0) + weightValue;
+            print('Added ${weightValue}kg for ${_getDayName(weekday)}, total now: ${dailyTotals[weekday]}kg');
+          }
+        }
+      } catch (e) {
+        print('Error processing document ${doc.id}: $e');
+      }
+    }
+
+    // Find min and max values from Monday to Saturday (only consider days with harvests > 0)
+    final nonZeroValues = dailyTotals.values.where((value) => value > 0).toList();
+    
+    double minValue;
+    double maxValue;
+    
+    if (nonZeroValues.isNotEmpty) {
+      nonZeroValues.sort();
+      minValue = nonZeroValues.first;
+      maxValue = nonZeroValues.last;
+    } else {
+      // If no harvests found, show 0-0 range
+      minValue = 0.0;
+      maxValue = 0.0;
+    }
+
+    print('Daily totals: $dailyTotals');
+    print('Non-zero values: $nonZeroValues');
+    print('Final range: ${minValue}kg to ${maxValue}kg');
+
+    if (mounted) {
+      String rangeText;
+      if (minValue == maxValue) {
+        // If min and max are the same, show single value
+        final formattedValue = minValue == 0 ? '0' : minValue.toStringAsFixed(1);
+        rangeText = "${formattedValue}kg";
+      } else {
+        // Show range
+        final formattedMin = minValue == 0 ? '0' : minValue.toStringAsFixed(1);
+        final formattedMax = maxValue == 0 ? '0' : maxValue.toStringAsFixed(1);
+        rangeText = "${formattedMin}kg - ${formattedMax}kg";
+      }
+      
+      print('Setting weeklyHarvest to: $rangeText');
+      setState(() {
+        weeklyHarvest = rangeText;
+      });
+      print('weeklyHarvest updated successfully');
+    }
+  } catch (e) {
+    print('Error calculating weekly range: $e');
+    print('Stack trace: ${StackTrace.current}');
+    if (mounted) {
+      setState(() => weeklyHarvest = '0kg - 0kg');
+    }
+  }
+}
+
+// Helper method to get day name for debugging
+String _getDayName(int weekday) {
+  switch (weekday) {
+    case 1: return 'Monday';
+    case 2: return 'Tuesday';
+    case 3: return 'Wednesday';
+    case 4: return 'Thursday';
+    case 5: return 'Friday';
+    case 6: return 'Saturday';
+    case 7: return 'Sunday';
+    default: return 'Unknown';
   }
 }
 

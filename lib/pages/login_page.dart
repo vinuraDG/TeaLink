@@ -273,6 +273,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                     Container(
                       padding: const EdgeInsets.all(20),
                       child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(16),
@@ -281,14 +282,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              Icons.factory_outlined,
+                              Icons.phone_android_outlined,
                               size: 50,
                               color: kMainColor,
                             ),
                           ),
                           const SizedBox(height: 20),
+                          
                           Text(
                             loc.welcomeToTeaLink,
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 25,
                               fontWeight: FontWeight.bold,
@@ -547,7 +550,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               loc.signUpHere,
                               style: TextStyle(
                                 color: kMainColor,
-                                fontSize: 16,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

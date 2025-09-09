@@ -31,6 +31,61 @@ class _AddWeightPageState extends State<AddWeightPage> {
     super.dispose();
   }
 
+  // Helper function to get week ID (YYYY-W##) - ISO week date (matching CollectorNotificationPage)
+  String getWeekId(DateTime date) {
+    // ISO 8601 week date calculation
+    // Week 1 is the first week with at least 4 days in the new year
+    // Monday is the first day of the week
+    
+    int year = date.year;
+    int dayOfYear = date.difference(DateTime(year, 1, 1)).inDays + 1;
+    
+    // Find the first Monday of the year
+    DateTime jan1 = DateTime(year, 1, 1);
+    int jan1Weekday = jan1.weekday; // Monday = 1, Sunday = 7
+    
+    // Days to the first Monday
+    int daysToFirstMonday = jan1Weekday == 1 ? 0 : 8 - jan1Weekday;
+    
+    // Adjust for ISO week calculation
+    int adjustedDayOfYear = dayOfYear + jan1Weekday - 1;
+    int weekNumber = ((adjustedDayOfYear - 1) / 7).floor() + 1;
+    
+    // Handle edge cases for first and last weeks
+    if (weekNumber < 1) {
+      // This date belongs to the last week of the previous year
+      year = year - 1;
+      weekNumber = getISOWeeksInYear(year);
+    } else if (weekNumber > getISOWeeksInYear(year)) {
+      // This date belongs to the first week of the next year
+      year = year + 1;
+      weekNumber = 1;
+    }
+    
+    return "${year}-W${weekNumber.toString().padLeft(2, '0')}";
+  }
+  
+  int getISOWeeksInYear(int year) {
+    DateTime lastDayOfYear = DateTime(year, 12, 31);
+    DateTime firstDayOfYear = DateTime(year, 1, 1);
+    
+    // Week 1 contains January 4th
+    DateTime jan4 = DateTime(year, 1, 4);
+    int jan4Weekday = jan4.weekday;
+    DateTime firstMondayOfFirstWeek = jan4.subtract(Duration(days: jan4Weekday - 1));
+    
+    // Last Monday of the year that starts a week
+    DateTime lastMondayOfYear = lastDayOfYear.subtract(Duration(days: lastDayOfYear.weekday - 1));
+    
+    return ((lastMondayOfYear.difference(firstMondayOfFirstWeek).inDays) / 7).floor() + 1;
+  }
+
+  // Get day name from DateTime (Monday = 1, Sunday = 7)
+  String getDayName(DateTime date) {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    return days[date.weekday - 1];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -206,6 +261,10 @@ class _AddWeightPageState extends State<AddWeightPage> {
       final batch = FirebaseFirestore.instance.batch();
       final now = DateTime.now();
       
+      // Calculate week ID and day name using the same method as CollectorNotificationPage
+      final weekId = getWeekId(now);
+      final dayName = getDayName(now);
+      
       // Update the notification document with weight and status
       // IMPORTANT: Add customerId to make it available for trends page
       batch.update(widget.docReference, {
@@ -216,29 +275,60 @@ class _AddWeightPageState extends State<AddWeightPage> {
         'collectedBy': FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
       });
 
-      // Calculate week ID for current date
-      final weekId = "${now.year}-W${((now.day - 1) ~/ 7) + 1}";
-
-      // Update weekly harvest for the customer
+      // Update weekly harvest for the customer using the correct structure
       final weeklyDocRef = FirebaseFirestore.instance
           .collection('customers')
           .doc(widget.regNo)
           .collection('weekly')
           .doc(weekId);
 
-      // Get current weekly total
-      final weeklyDoc = await weeklyDocRef.get();
-      final currentTotal = weeklyDoc.exists ? (weeklyDoc.data()?['total'] ?? 0.0) : 0.0;
-      final newTotal = currentTotal + weight;
-
-      // Update or create weekly document
-      batch.set(weeklyDocRef, {
-        'total': newTotal,
-        'updatedAt': Timestamp.fromDate(now),
-        'customerId': widget.customerId,
-        'customerRegNo': widget.regNo,
-        'weekId': weekId,
-      }, SetOptions(merge: true));
+      // Use transaction to ensure data consistency (same as CollectorNotificationPage)
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        DocumentSnapshot weeklyDoc = await transaction.get(weeklyDocRef);
+        
+        if (weeklyDoc.exists) {
+          // Update existing weekly document
+          Map<String, dynamic> currentData = weeklyDoc.data() as Map<String, dynamic>;
+          double currentDayWeight = (currentData[dayName] as num?)?.toDouble() ?? 0.0;
+          double currentWeeklyTotal = (currentData['weeklyTotal'] as num?)?.toDouble() ?? 0.0;
+          
+          // Add new weight to existing day weight and weekly total
+          double newDayWeight = currentDayWeight + weight;
+          double newWeeklyTotal = currentWeeklyTotal + weight;
+          
+          transaction.update(weeklyDocRef, {
+            dayName: newDayWeight,
+            'weeklyTotal': newWeeklyTotal,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+          
+          print('Updated existing week: $dayName=$newDayWeight, weeklyTotal=$newWeeklyTotal');
+        } else {
+          // Create new weekly document
+          Map<String, dynamic> weeklyData = {
+            'weekId': weekId,
+            'monday': 0.0,
+            'tuesday': 0.0,
+            'wednesday': 0.0,
+            'thursday': 0.0,
+            'friday': 0.0,
+            'saturday': 0.0,
+            'sunday': 0.0,
+            'weeklyTotal': weight,
+            'customerId': widget.customerId,
+            'customerRegNo': widget.regNo,
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          };
+          
+          // Set the current day's weight
+          weeklyData[dayName] = weight;
+          
+          transaction.set(weeklyDocRef, weeklyData);
+          
+          print('Created new week document: $weekId with $dayName=$weight');
+        }
+      });
 
       // Add individual harvest record
       final harvestDocRef = FirebaseFirestore.instance
@@ -256,6 +346,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
         'collectedBy': FirebaseAuth.instance.currentUser?.uid ?? 'unknown',
         'status': 'Collected',
         'weekId': weekId,
+        'dayName': dayName, // Add day name for consistency
       });
 
       // Commit the batch
@@ -265,8 +356,11 @@ class _AddWeightPageState extends State<AddWeightPage> {
 
       if (mounted) {
         _showSuccessSnackBar('Weight saved successfully!');
-        // Return true to indicate successful save
-        Navigator.pop(context, true);
+        // Return success with weight data
+        Navigator.pop(context, {
+          'success': true,
+          'weight': weight,
+        });
       }
     } catch (e) {
       setState(() => _isLoading = false);

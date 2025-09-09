@@ -23,7 +23,9 @@ class SharedOnboardingScreen extends StatelessWidget {
           child: Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+                
                 ClipRRect(
                   borderRadius: BorderRadius.circular(kdefaultBoarderRadius),
                   child: Image.asset(

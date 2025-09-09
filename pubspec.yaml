@@ -88,15 +88,10 @@ flutter:
         - asset: assets/fonts/Inter_28pt-ExtraLight.ttf
           weight: 200
 
-    
-    - family: Roboto
-      fonts:
-        - asset: assets/fonts/Roboto-Regular.ttf
-        - asset: assets/fonts/Roboto-Bold.ttf
-          weight: 700
 
     - family: NotoSansSinhala
       fonts:
-        - asset: assets/fonts/NotoSansSinhala-Regular.ttf
-        - asset: assets/fonts/NotoSansSinhala-Bold.ttf
-          weight: 700
+        - asset: assets/fonts/sinhala/NotoSansSinhala-Regular.ttf
+          weight: 600
+        - asset: assets/fonts/sinhala/NotoSansSinhala-Bold.ttf
+          weight: 900

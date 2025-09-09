@@ -368,26 +368,59 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                       fontWeight: FontWeight.bold),
                                 ),
                                 onPressed: () async {
-                                  final result =
-                                      await Navigator.push(
+                                  final result = await Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) =>
-                                          AddWeightPage(
+                                      builder: (context) => AddWeightPage(
                                         customerName: customerName,
                                         regNo: regNo,
                                         docReference: doc.reference,
                                         customerId:
-                                            data['customerId'] ??
-                                                'unknown',
+                                            data['customerId'] ?? 'unknown',
                                       ),
                                     ),
                                   );
 
-                                  if (result == true) {
+                                  // ✅ REMOVED DUPLICATE WEEKLY DATA UPDATE
+                                  // The weekly data is now handled entirely in AddWeightPage
+                                  if (result is Map<String, dynamic> && result['success'] == true) {
                                     if (!mounted) return;
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(
+                                    
+                                    double weight = result['weight']?.toDouble() ?? 0.0;
+                                    
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.check_circle,
+                                                color: Colors.white),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                '$customerName collected successfully (${weight}kg)',
+                                                style: const TextStyle(
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        backgroundColor: Colors.green,
+                                        duration: const Duration(seconds: 3),
+                                        behavior: SnackBarBehavior.floating,
+                                        margin: const EdgeInsets.only(
+                                            bottom: 80,
+                                            left: 16,
+                                            right: 16),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    );
+                                  } else if (result == true) {
+                                    // Fallback for old return format
+                                    ScaffoldMessenger.of(context).showSnackBar(
                                       SnackBar(
                                         content: Row(
                                           children: [
