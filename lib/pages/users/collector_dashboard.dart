@@ -74,11 +74,11 @@ class _CollectorDashboardState extends State<CollectorDashboard>
     if (mounted) {
       setState(() {
         if (hour < 12) {
-          greeting = l10n.goodMorning ?? "Good Morning!";
+          greeting = l10n.goodMorning;
         } else if (hour < 17) {
-          greeting = l10n.goodAfternoon ?? "Good Afternoon!";
+          greeting = l10n.goodAfternoon;
         } else {
-          greeting = l10n.goodEvening ?? "Good Evening!";
+          greeting = l10n.goodEvening;
         }
       });
     }
@@ -343,7 +343,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
               ),
               const SizedBox(height: 8),
               Text(
-                userName.isEmpty ? (l10n.loading ?? "Loading...") : userName,
+                userName.isEmpty ? (l10n.loading) : userName,
                 style: const TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -361,7 +361,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                   borderRadius: BorderRadius.circular(15),
                 ),
                 child: Text(
-                  l10n.readyToCollectToday ?? "Ready to collect today!",
+                  l10n.readyToCollectToday,
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.white.withOpacity(0.9),
@@ -414,7 +414,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          l10n.quickActions ?? "Quick Actions",
+          l10n.quickActions,
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.bold,
@@ -423,7 +423,7 @@ class _CollectorDashboardState extends State<CollectorDashboard>
         ),
         const SizedBox(height: 8),
         Text(
-          l10n.chooseActionToStart ?? "Choose an action to start",
+          l10n.chooseActionToStart,
           style: TextStyle(
             fontSize: 14,
             color: Colors.grey[600],
@@ -441,8 +441,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
           childAspectRatio: screenWidth > 400 ? 1.1 : 1.0,
           children: [
             _buildEnhancedDashboardCard(
-              title: l10n.customerList ?? "Customer List",
-              subtitle: l10n.viewAllCustomers ?? "View all customers",
+              title: l10n.customerList,
+              subtitle: l10n.viewAllCustomers,
               icon: Icons.people,
               color: Colors.blue,
               delay: 0,
@@ -452,8 +452,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
               ),
             ),
             _buildEnhancedDashboardCard(
-              title: l10n.history ?? "History",
-              subtitle: l10n.viewPastCollections ?? "View past collections",
+              title: l10n.history,
+              subtitle: l10n.viewPastCollections,
               icon: Icons.history,
               color: Colors.purple,
               delay: 300,
@@ -463,8 +463,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
               ),
             ),
             _buildEnhancedDashboardCard(
-              title: l10n.mapView ?? "Map View",
-              subtitle: l10n.seeCustomerLocations ?? "See customer locations",
+              title: l10n.mapView,
+              subtitle: l10n.seeCustomerLocations,
               icon: Icons.map_outlined,
               color: Colors.orange,
               delay: 200,
@@ -474,8 +474,8 @@ class _CollectorDashboardState extends State<CollectorDashboard>
               ),
             ),
             _buildEnhancedDashboardCard(
-              title: l10n.profileSettings ?? "Profile Settings",
-              subtitle: l10n.manageCollectorProfile ?? "Manage collector profile",
+              title: l10n.profileSettings,
+              subtitle: l10n.manageCollectorProfile,
               icon: Icons.settings,
               color: kMainColor,
               delay: 300,
@@ -603,20 +603,26 @@ class _CollectorDashboardState extends State<CollectorDashboard>
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
-          title: Text(
-            l10n.logout ?? "Logout",
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          content: Text(l10n.areYouSureLogout ?? "Are you sure you want to logout?"),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                l10n.cancel ?? "Cancel",
-                style: TextStyle(color: Colors.grey[600]),
-              ),
+          
+          title: Center(
+            child: Text(
+              l10n.logout,
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
-            ElevatedButton(
+          ),
+        
+          content: Text(l10n.areYouSureLogout),
+          actions: [
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    l10n.cancel,
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+                ElevatedButton(
               onPressed: () {
                 Navigator.pop(context);
                 _logout(context);
@@ -628,8 +634,11 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: Text(l10n.logout ?? "Logout"),
+              child: Text(l10n.logout),
             ),
+              ],
+            ),
+            
           ],
         );
       },

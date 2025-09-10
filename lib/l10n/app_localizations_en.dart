@@ -458,9 +458,300 @@ String get chooseActionToStart => 'Choose an action to get started';
 String get logout => 'Logout';
 
 @override
-String get areYouSureLogout => 'Are you sure you want to logout?';
+String get areYouSureLogout => '    Are you sure you want to logout?';
 
 @override
 String get map => 'Map';
+
+
+
+
+
+// Notification Page
+@override
+String get customerNotifications => 'Customer Notifications';
+
+@override
+String get loadingNotifications => 'Loading notifications...';
+
+@override
+String get failedToLoadNotifications => 'Failed to load notifications';
+
+@override
+String get error => 'Error';
+
+@override
+String get allCaughtUp => 'All Caught Up!';
+
+@override
+String get noPendingCollectionRequests => 'No pending collection requests';
+
+@override
+String get allCustomersCollectedToday => 'All customers have been collected today';
+
+@override
+String get pendingCollection => 'Pending Collection';
+
+@override
+String get minutesAgo => 'm ago';
+
+@override
+String get hoursAgo => 'h ago';
+
+@override
+String get daysAgoShort => 'd ago';
+
+@override
+String get at => 'at';
+
+@override
+String get collect => 'Collect';
+
+// Collection History Page
+@override
+String get collectionHistory => 'Collection History';
+
+@override
+String get searchByNameOrReg => 'Search by name or reg no...';
+
+@override
+String get sortByDate => 'Sort by Date';
+
+@override
+String get sortByName => 'Sort by Name';
+
+@override
+String get sortByRegNo => 'Sort by Reg No';
+
+@override
+String get sortByWeight => 'Sort by Weight';
+
+@override
+String get ascending => 'Ascending';
+
+@override
+String get descending => 'Descending';
+
+@override
+String get today => 'Today';
+
+@override
+String get loadingCollectionHistory => 'Loading collection history...';
+
+@override
+String get somethingWentWrong => 'Something went wrong';
+
+@override
+String get unableToLoadHistory => 'Unable to load collection history';
+
+@override
+String get filterByDateRange => 'Filter by Date Range';
+
+@override
+String get startDate => 'Start Date';
+
+@override
+String get endDate => 'End Date';
+
+@override
+String get foundCollectionsInRangee => 'Found {count} collections in selected date range';
+
+@override
+String get totalCollections => 'Collections';
+
+@override
+String get totalWeight => 'Total Weight';
+
+@override
+String get collected => 'Collected';
+
+@override
+String get noCollectionsToday => 'No Collections Today';
+
+@override
+String get noCollectionHistory => 'No Collection History';
+
+@override
+String get noCollectionsTodayDescription => 'You haven\'t collected from any customers today. Start collecting to see your progress here!';
+
+@override
+String get noCollectionHistoryDescription => 'You haven\'t made any collections yet. Once you start collecting, your history will appear here.';
+
+@override
+String get startCollecting => 'Start Collecting';
+
+@override
+String get collectionDetails => 'Collection Details';
+
+@override
+String get completed => 'Completed';
+
+@override
+String get customerName => 'Customer Name';
+
+@override
+String get registrationNo => 'Registration No';
+
+@override
+String get weightCollected => 'Weight Collected';
+
+@override
+String get collectionDate => 'Collection Date';
+
+@override
+String get collectionTime => 'Collection Time';
+
+@override
+String get collectedBy => 'Collected By';
+
+@override
+String get remarks => 'Remarks';
+
+@override
+String get close => 'Close';
+
+@override
+String get collector => 'Collector';
+
+
+// Collector Map Page
+@override
+String get todaysCustomerLocations => 'Today\'s Customer Locations';
+
+@override
+String get changeMapLayer => 'Change map layer';
+
+@override
+String get centerTodaysMarkers => 'Center today\'s markers';
+
+@override
+String get errorLoadingMap => 'Error Loading Map';
+
+@override
+String get noCollectionRequestsToday => 'No collection requests found for today.';
+
+@override
+String get noLocationDataAvailable => 'Found {count} collection requests for today, but none have location data.\n\nPossible solutions:\n1. Ask customers to enable location when requesting\n2. Check if location data is stored in a different format\n3. Verify Firestore security rules allow location reading';
+
+@override
+String get switchedToMapView => 'Switched to {layerName} view';
+
+@override
+String get streetMap => 'Street Map';
+
+@override
+String get satellite => 'Satellite';
+
+@override
+String get terrain => 'Terrain';
+
+@override
+String get collectionCompletedAlready => 'This collection has already been completed';
+
+@override
+String get errorNavigatingToLocation => 'Error navigating to location';
+
+@override
+String get collectionCompletedSuccessfully => 'Collection completed successfully!';
+
+@override
+String get errorOpeningWeightPage => 'Error opening weight page: {error}';
+
+@override
+String get weightUpdatedSuccessfully => 'Weight updated successfully!';
+
+@override
+String get errorUpdatingWeight => 'Error updating weight: {error}';
+
+@override
+String get removeWeight => 'Remove Weight';
+
+@override
+String get areYouSureRemoveWeight => 'Are you sure you want to remove the weight for {customerName}?';
+
+@override
+String get remove => 'Remove';
+
+@override
+String get weightRemovedSuccessfully => 'Weight removed successfully';
+
+@override
+String get failedToRemoveWeight => 'Failed to remove weight: {error}';
+
+@override
+String get externalNavigationComingSoon => 'External navigation feature coming soon!';
+
+@override
+String get todaysCollections => 'Today\'s Collections';
+
+@override
+String get onMap => 'On Map';
+
+@override
+String get pending => 'Pending';
+
+@override
+String get todaysTotalWeight => 'Today\'s Total Weight: {weight} kg';
+
+@override
+String get completedCollectionsHidden => '{count} completed collections today (hidden from map)';
+
+@override
+String get centerTodaysPendingCollections => 'Center today\'s pending collections';
+
+@override
+String get viewDetails => 'View Details';
+
+@override
+String get addWeight => 'Add Weight';
+
+@override
+String get navigate => 'Navigate';
+
+@override
+String get updateWeight => 'Update Weight';
+
+@override
+String get timeRequested => 'Time';
+
+@override
+String get date => 'Date';
+
+@override
+String get requested => 'Requested';
+
+@override
+String get weight => 'Weight';
+
+@override
+String get address => 'Address';
+
+@override
+String get coordinatess => 'Coordinates';
+
+@override
+String get locationSource => 'Location Source';
+
+@override
+String get userProfile => 'User Profile';
+
+@override
+String get currentGPS => 'Current GPS';
+
+@override
+String customerCollectedSuccessfullyWithWeight(String customerName, double weight) {
+  return '$customerName collected successfully (${weight}kg)';
+}
+
+@override
+String customerCollectedSuccessfully(String customerName) {
+  return '$customerName collected successfully';
+}
+
+  @override
+  String foundCollectionsInRange(int count) {
+    // TODO: implement foundCollectionsInRange
+    throw UnimplementedError();
+  }
 
 }

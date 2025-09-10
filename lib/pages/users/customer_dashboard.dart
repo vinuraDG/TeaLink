@@ -829,22 +829,20 @@ Future<void> debugWeekCalculations() async {
       };
 
       // Add location field
-      if (locationToUse != null) {
-        Map<String, dynamic> locationField = {
-          'latitude': locationToUse['latitude'],
-          'longitude': locationToUse['longitude'],
-          'timestamp': Timestamp.fromDate(now),
-          'source': hasStoredLocation ? 'stored' : 'current',
-        };
-        
-        // Add address if available
-        if (userLocationAddress != null && userLocationAddress.isNotEmpty) {
-          locationField['address'] = userLocationAddress;
-        }
-        
-        notificationData['location'] = locationField;
+      Map<String, dynamic> locationField = {
+        'latitude': locationToUse['latitude'],
+        'longitude': locationToUse['longitude'],
+        'timestamp': Timestamp.fromDate(now),
+        'source': hasStoredLocation ? 'stored' : 'current',
+      };
+      
+      // Add address if available
+      if (userLocationAddress != null && userLocationAddress.isNotEmpty) {
+        locationField['address'] = userLocationAddress;
       }
-
+      
+      notificationData['location'] = locationField;
+    
       // Save to Firestore
       await FirebaseFirestore.instance
           .collection('notify_for_collection')

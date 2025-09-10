@@ -177,11 +177,6 @@ class _ProfilePageState extends State<ProfilePage> {
       // Get language from LanguageService with fallback chain
       String? userLanguage = await LanguageService.getLanguageLocally();
       
-      // If no local language, try Firestore
-      if (userLanguage == null) {
-        userLanguage = await LanguageService.getLanguageFromFirestore();
-      }
-      
       // Set default if still null
       userLanguage ??= 'en';
       

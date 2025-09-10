@@ -55,11 +55,9 @@ Future<String> getInitialRoute() async {
   if (user == null) return '/'; // Onboarding for first-time visitors
 
   String? role = await SessionManager.getUserRole();
-  if (role != null) {
-    if (role.toLowerCase() == 'customer') return '/customerDashboard';
-    if (role.toLowerCase() == 'collector') return '/collectorDashboard';
-    if (role.toLowerCase() == 'admin') return '/Admin';
-  }
+  if (role?.toLowerCase() == 'customer') return '/customerDashboard';
+  if (role?.toLowerCase() == 'collector') return '/collectorDashboard';
+  if (role?.toLowerCase() == 'admin') return '/Admin';
   return '/option';
 }
 

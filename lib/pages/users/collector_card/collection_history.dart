@@ -1,6 +1,8 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 enum SortField { date, name, regNo, weight }
 enum SortOrder { ascending, descending }
@@ -28,6 +30,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final CollectionReference notifyCollection =
         FirebaseFirestore.instance.collection('notify_for_collection');
 
@@ -37,9 +40,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: !_isSearching
-              ? const Text(
-                  "Collection History",
-                  style: TextStyle(
+              ? Text(
+                  localizations.collectionHistory,
+                  style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: kWhite,
@@ -54,11 +57,11 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                   child: TextField(
                     autofocus: true,
                     style: const TextStyle(color: kWhite),
-                    decoration: const InputDecoration(
-                      hintText: "Search by name or reg no...",
-                      hintStyle: TextStyle(color: Colors.white70),
+                    decoration: InputDecoration(
+                      hintText: localizations.searchByNameOrReg,
+                      hintStyle: const TextStyle(color: Colors.white70),
                       border: InputBorder.none,
-                      prefixIcon: Icon(Icons.search, color: Colors.white70),
+                      prefixIcon: const Icon(Icons.search, color: Colors.white70),
                     ),
                     onChanged: (value) =>
                         setState(() => _searchQuery = value.trim()),
@@ -141,7 +144,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                         children: [
                           Icon(Icons.date_range, color: kMainColor, size: 18),
                           const SizedBox(width: 8),
-                          const Text("Sort by Date"),
+                          Text(localizations.sortByDate),
                         ],
                       ),
                     ),
@@ -151,7 +154,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                         children: [
                           Icon(Icons.person, color: kMainColor, size: 18),
                           const SizedBox(width: 8),
-                          const Text("Sort by Name"),
+                          Text(localizations.sortByName),
                         ],
                       ),
                     ),
@@ -161,7 +164,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                         children: [
                           Icon(Icons.numbers, color: kMainColor, size: 18),
                           const SizedBox(width: 8),
-                          const Text("Sort by Reg No"),
+                          Text(localizations.sortByRegNo),
                         ],
                       ),
                     ),
@@ -171,7 +174,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                         children: [
                           Icon(Icons.scale, color: kMainColor, size: 18),
                           const SizedBox(width: 8),
-                          const Text("Sort by Weight"),
+                          Text(localizations.sortByWeight),
                         ],
                       ),
                     ),
@@ -182,7 +185,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                         children: [
                           Icon(Icons.arrow_upward, color: Colors.green, size: 18),
                           const SizedBox(width: 8),
-                          const Text("Ascending"),
+                          Text(localizations.ascending),
                         ],
                       ),
                     ),
@@ -192,7 +195,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                         children: [
                           Icon(Icons.arrow_downward, color: Colors.red, size: 18),
                           const SizedBox(width: 8),
-                          const Text("Descending"),
+                          Text(localizations.descending),
                         ],
                       ),
                     ),
@@ -214,9 +217,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
               child: TabBar(
                 indicatorColor: kWhite,
                 indicatorWeight: 3,
-                indicator: UnderlineTabIndicator(
-                  borderSide: const BorderSide(width: 3, color: kWhite),
-                  insets: const EdgeInsets.symmetric(horizontal: 50),
+                indicator: const UnderlineTabIndicator(
+                  borderSide: BorderSide(width: 3, color: kWhite),
+                  insets: EdgeInsets.symmetric(horizontal: 50),
                 ),
                 labelColor: kWhite,
                 unselectedLabelColor: Colors.white70,
@@ -228,14 +231,14 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                   fontWeight: FontWeight.w400,
                   fontSize: 16,
                 ),
-                tabs: const [
+                tabs: [
                   Tab(
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.today, size: 18),
-                        SizedBox(width: 6),
-                        Text("Today"),
+                        const Icon(Icons.today, size: 18),
+                        const SizedBox(width: 6),
+                        Text(localizations.today),
                       ],
                     ),
                   ),
@@ -243,9 +246,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.history, size: 18),
-                        SizedBox(width: 6),
-                        Text("History"),
+                        const Icon(Icons.history, size: 18),
+                        const SizedBox(width: 6),
+                        Text(localizations.history),
                       ],
                     ),
                   ),
@@ -261,15 +264,15 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
               .snapshots(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
+              return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    CircularProgressIndicator(color: kMainColor),
-                    SizedBox(height: 16),
+                    const CircularProgressIndicator(color: kMainColor),
+                    const SizedBox(height: 16),
                     Text(
-                      "Loading collection history...",
-                      style: TextStyle(
+                      localizations.loadingCollectionHistory,
+                      style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -292,7 +295,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      "Something went wrong",
+                      localizations.somethingWentWrong,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -301,7 +304,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      "Unable to load collection history",
+                      localizations.unableToLoadHistory,
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[500],
@@ -395,8 +398,8 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
 
             return TabBarView(
               children: [
-                _buildList(todayList, isToday: true),
-                _buildList(olderList, isToday: false),
+                _buildList(todayList, isToday: true, localizations: localizations),
+                _buildList(olderList, isToday: false, localizations: localizations),
               ],
             );
           },
@@ -425,22 +428,22 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
             elevation: 0,
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 24),
-                label: 'Home',
+                icon: const Icon(Icons.home_rounded, size: 24),
+                label: localizations.home,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map_sharp, size: 24),
-                label: 'Map',
+                icon: const Icon(Icons.map_sharp, size: 24),
+                label: localizations.map,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: 24),
-                label: 'History',
+                icon: const Icon(Icons.history, size: 24),
+                label: localizations.history,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 24),
-                label: 'Profile',
+                icon: const Icon(Icons.person, size: 24),
+                label: localizations.profile,
               ),
             ],
           ),
@@ -449,8 +452,8 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
     );
   }
 
-  Widget _buildList(List<DocumentSnapshot> docs, {bool isToday = false}) {
-    if (docs.isEmpty) return _emptyState(isToday);
+  Widget _buildList(List<DocumentSnapshot> docs, {bool isToday = false, required AppLocalizations localizations}) {
+    if (docs.isEmpty) return _emptyState(isToday, localizations);
 
     // Filter by date range if Older tab
     List<DocumentSnapshot> filteredDocs = docs;
@@ -507,9 +510,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                   children: [
                     Icon(Icons.filter_list, color: kMainColor, size: 20),
                     const SizedBox(width: 8),
-                    const Text(
-                      "Filter by Date Range",
-                      style: TextStyle(
+                    Text(
+                      localizations.filterByDateRange,
+                      style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
                       ),
@@ -521,7 +524,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                   children: [
                     Expanded(
                       child: _buildDateButton(
-                        label: _startDate != null ? _formatDate(_startDate!) : "Start Date",
+                        label: _startDate != null ? _formatDate(_startDate!) : localizations.startDate,
                         icon: Icons.calendar_today,
                         onPressed: () => _pickDate(isStart: true),
                       ),
@@ -529,7 +532,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildDateButton(
-                        label: _endDate != null ? _formatDate(_endDate!) : "End Date",
+                        label: _endDate != null ? _formatDate(_endDate!) : localizations.endDate,
                         icon: Icons.event,
                         onPressed: () => _pickDate(isStart: false),
                       ),
@@ -584,9 +587,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                 Expanded(
                   child: _buildSummaryCard(
                     icon: Icons.inventory_2,
-                    title: "Collections",
+                    title: localizations.totalCollections,
                     value: "$totalCollections",
-                    subtitle: "Today",
+                    subtitle: localizations.today,
                   ),
                 ),
                 Container(
@@ -597,9 +600,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                 Expanded(
                   child: _buildSummaryCard(
                     icon: Icons.scale,
-                    title: "Total Weight",
+                    title: localizations.totalWeight,
                     value: "${totalWeight.toStringAsFixed(1)} kg",
-                    subtitle: "Collected",
+                    subtitle: localizations.collected,
                   ),
                 ),
               ],
@@ -673,7 +676,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(16),
-                    onTap: () => _showDetailsDialog(data),
+                    onTap: () => _showDetailsDialog(data, localizations),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
@@ -751,7 +754,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                                     Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
                                     const SizedBox(width: 4),
                                     Text(
-                                      "$date at $time",
+                                      "$date ${localizations.at}\n$time",
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey[500],
@@ -781,7 +784,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      "Collected",
+                                      localizations.collected,
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -877,7 +880,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
     );
   }
 
-  Widget _emptyState(bool isToday) {
+  Widget _emptyState(bool isToday, AppLocalizations localizations) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -897,7 +900,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
           ),
           const SizedBox(height: 24),
           Text(
-            isToday ? "No Collections Today" : "No Collection History",
+            isToday ? localizations.noCollectionsToday : localizations.noCollectionHistory,
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -909,8 +912,8 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
               isToday 
-                  ? "You haven't collected from any customers today. Start collecting to see your progress here!"
-                  : "You haven't made any collections yet. Once you start collecting, your history will appear here.",
+                  ? localizations.noCollectionsTodayDescription
+                  : localizations.noCollectionHistoryDescription,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -923,7 +926,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
             ElevatedButton.icon(
               onPressed: () => Navigator.pushNamed(context, '/collector_home'),
               icon: const Icon(Icons.add_location),
-              label: const Text("Start Collecting"),
+              label: Text(localizations.startCollecting),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
@@ -957,7 +960,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
     }
   }
 
-  void _showDetailsDialog(Map<String, dynamic> data) {
+  void _showDetailsDialog(Map<String, dynamic> data, AppLocalizations localizations) {
     DateTime collectedAt =
         (data['collectedAt'] as Timestamp?)?.toDate() ??
         (data['createdAt'] as Timestamp?)?.toDate() ??
@@ -1011,7 +1014,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          data['name'] ?? "Collection Details",
+                          data['name'] ?? localizations.collectionDetails,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -1035,7 +1038,7 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                "Completed",
+                                localizations.completed,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -1064,45 +1067,45 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                   children: [
                     _buildDetailRow(
                       icon: Icons.person,
-                      label: "Customer Name",
+                      label: localizations.customerName,
                       value: data['name'] ?? 'N/A',
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
                       icon: Icons.badge,
-                      label: "Registration No",
+                      label: localizations.registrationNo,
                       value: data['regNo'] ?? 'N/A',
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
                       icon: Icons.scale,
-                      label: "Weight Collected",
+                      label: localizations.weightCollected,
                       value: "${data['weight'] ?? 'N/A'} kg",
                       valueColor: Colors.green[700],
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
                       icon: Icons.calendar_today,
-                      label: "Collection Date",
+                      label: localizations.collectionDate,
                       value: date,
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
                       icon: Icons.access_time,
-                      label: "Collection Time",
+                      label: localizations.collectionTime,
                       value: time,
                     ),
                     const SizedBox(height: 12),
                     _buildDetailRow(
                       icon: Icons.person_outline,
-                      label: "Collected By",
-                      value: data['collectorName'] ?? 'Collector',
+                      label: localizations.collectedBy,
+                      value: data['collectorName'] ?? localizations.collector,
                     ),
                     if (data['remarks'] != null && data['remarks'].toString().isNotEmpty) ...[
                       const SizedBox(height: 12),
                       _buildDetailRow(
                         icon: Icons.note,
-                        label: "Remarks",
+                        label: localizations.remarks,
                         value: data['remarks'],
                       ),
                     ],
@@ -1126,9 +1129,9 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    "Close",
-                    style: TextStyle(
+                  child: Text(
+                    localizations.close,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1214,22 +1217,20 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
       },
     );
 
-    if (picked != null) {
-      setState(() {
-        if (isStart) {
-          _startDate = picked;
-          if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-            _endDate = _startDate;
-          }
-        } else {
-          _endDate = picked;
-          if (_startDate != null && _startDate!.isAfter(_endDate!)) {
-            _startDate = _endDate;
-          }
+    setState(() {
+      if (isStart) {
+        _startDate = picked;
+        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+          _endDate = _startDate;
         }
-      });
+      } else {
+        _endDate = picked;
+        if (_startDate != null && _startDate!.isAfter(_endDate!)) {
+          _startDate = _endDate;
+        }
+      }
+    });
     }
-  }
 
   String _formatDate(DateTime date) {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";

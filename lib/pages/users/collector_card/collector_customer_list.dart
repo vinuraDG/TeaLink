@@ -1,7 +1,9 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:TeaLink/pages/users/collector_card/add_weight.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class CollectorNotificationPage extends StatefulWidget {
   final String collectorId;
@@ -18,6 +20,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
     final CollectionReference notifyCollection =
         FirebaseFirestore.instance.collection('notify_for_collection');
 
@@ -28,9 +31,9 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Customer Notifications",
-          style: TextStyle(
+        title: Text(
+          localizations.customerNotifications,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: kWhite,
@@ -89,13 +92,13 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text("Loading notifications..."),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(localizations.loadingNotifications),
                 ],
               ),
             );
@@ -106,29 +109,29 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  SizedBox(height: 16),
+                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                  const SizedBox(height: 16),
                   Text(
-                    "Failed to load notifications",
-                    style: TextStyle(
+                    localizations.failedToLoadNotifications,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey,
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    "Error: ${snapshot.error}",
+                    "${localizations.error}: ${snapshot.error}",
                     textAlign: TextAlign.center,
                     style: TextStyle(color: Colors.grey[500]),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => setState(() {}),
                     style:
                         ElevatedButton.styleFrom(backgroundColor: kMainColor),
-                    child: const Text("Retry",
-                        style: TextStyle(color: Colors.white)),
+                    child: Text(localizations.retry,
+                        style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -155,27 +158,27 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                       color: Colors.green[300],
                     ),
                   ),
-                  SizedBox(height: 24),
+                  const SizedBox(height: 24),
                   Text(
-                    "All Caught Up!",
+                    localizations.allCaughtUp,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.green[700],
                     ),
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Text(
-                    "No pending collection requests",
+                    localizations.noPendingCollectionRequests,
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                       color: Colors.grey[600],
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Text(
-                    "All customers have been collected today",
+                    localizations.allCustomersCollectedToday,
                     style:
                         TextStyle(fontSize: 14, color: Colors.grey[500]),
                   ),
@@ -212,7 +215,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                         color: Colors.white, size: 24),
                     const SizedBox(width: 12),
                     Text(
-                      "${notifications.length} Pending Collection${notifications.length > 1 ? 's' : ''}",
+                      "${notifications.length} ${localizations.pendingCollection}${notifications.length > 1 ? 's' : ''}",
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -260,11 +263,11 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                       final difference = now.difference(createdAt);
                       String timeAgo;
                       if (difference.inMinutes < 60) {
-                        timeAgo = "${difference.inMinutes}m ago";
+                        timeAgo = "${difference.inMinutes}${localizations.minutesAgo}";
                       } else if (difference.inHours < 24) {
-                        timeAgo = "${difference.inHours}h ago";
+                        timeAgo = "${difference.inHours}${localizations.hoursAgo}";
                       } else {
-                        timeAgo = "${difference.inDays}d ago";
+                        timeAgo = "${difference.inDays}${localizations.daysAgoShort}";
                       }
 
                       return Card(
@@ -326,7 +329,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const SizedBox(height: 4),
-                                Text('Reg No: $regNo',
+                                Text('${localizations.regNo}: $regNo',
                                     style: const TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600)),
@@ -339,7 +342,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                          '$timeAgo • $date at $time',
+                                          '$timeAgo • $date ${localizations.at} $time',
                                           style: TextStyle(
                                               fontSize: 12,
                                               color: Colors.grey[600])),
@@ -361,9 +364,9 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                       horizontal: 8, vertical: 6),
                                   elevation: 2,
                                 ),
-                                child: const Text(
-                                  "Collect",
-                                  style: TextStyle(
+                                child: Text(
+                                  localizations.collect,
+                                  style: const TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold),
                                 ),
@@ -397,7 +400,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                '$customerName collected successfully (${weight}kg)',
+                                                localizations.customerCollectedSuccessfullyWithWeight(customerName, weight),
                                                 style: const TextStyle(
                                                     fontWeight:
                                                         FontWeight.w500),
@@ -429,7 +432,7 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                '$customerName collected successfully',
+                                                localizations.customerCollectedSuccessfully(customerName),
                                                 style: const TextStyle(
                                                     fontWeight:
                                                         FontWeight.w500),
@@ -501,22 +504,22 @@ class _CollectorNotificationPageState extends State<CollectorNotificationPage> {
             elevation: 0,
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 26),
-                label: 'Home',
+                icon: const Icon(Icons.home_rounded, size: 26),
+                label: localizations.home,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.map_sharp, size: 26),
-                label: 'Map',
+                icon: const Icon(Icons.map_sharp, size: 26),
+                label: localizations.map,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: 26),
-                label: 'History',
+                icon: const Icon(Icons.history, size: 26),
+                label: localizations.history,
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 26),
-                label: 'Profile',
+                icon: const Icon(Icons.person, size: 26),
+                label: localizations.profile,
               ),
             ],
           ),

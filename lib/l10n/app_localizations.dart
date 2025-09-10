@@ -36,6 +36,12 @@ abstract class AppLocalizations {
     Locale('si'),
   ];
 
+  var unknownCustomer;
+
+  var notAvailable;
+
+  var foundCollectionsInRangee;
+
   // -----------------------------
   // Common / onboarding strings
   // -----------------------------
@@ -273,6 +279,106 @@ String get logout;
 String get areYouSureLogout;
 String get map ;
 
+
+
+// Notification Page
+String get customerNotifications;
+String get loadingNotifications;
+String get failedToLoadNotifications;
+String get error;
+String get allCaughtUp;
+String get noPendingCollectionRequests;
+String get allCustomersCollectedToday;
+String get pendingCollection;
+String get minutesAgo;
+String get hoursAgo;
+String get daysAgoShort;
+String get at;
+String get collect;
+String customerCollectedSuccessfullyWithWeight(String customerName, double weight);
+String customerCollectedSuccessfully(String customerName);
+
+ // Collection History Page methods
+  String get collectionHistory;
+  String get searchByNameOrReg;
+  String get sortByDate;
+  String get sortByName;
+  String get sortByRegNo;
+  String get sortByWeight;
+  String get ascending;
+  String get descending;
+  String get today;
+  String get loadingCollectionHistory;
+  String get somethingWentWrong;
+  String get unableToLoadHistory;
+  String get filterByDateRange;
+  String get startDate;
+  String get endDate;
+  String foundCollectionsInRange(int count);
+  String get totalCollections;
+  String get totalWeight;
+  String get collected;
+  String get noCollectionsToday;
+  String get noCollectionHistory;
+  String get noCollectionsTodayDescription;
+  String get noCollectionHistoryDescription;
+  String get startCollecting;
+  String get collectionDetails;
+  String get completed;
+  String get customerName;
+  String get registrationNo;
+  String get weightCollected;
+  String get collectionDate;
+  String get collectionTime;
+  String get collectedBy;
+  String get remarks;
+  String get close;
+  String get collector;
+
+
+
+// Collector Map Page - Missing abstract declarations
+String get todaysCustomerLocations;
+String get changeMapLayer;
+String get centerTodaysMarkers;
+String get errorLoadingMap;
+String get noCollectionRequestsToday;
+String get noLocationDataAvailable;
+String get switchedToMapView;
+String get streetMap;
+String get satellite;
+String get terrain;
+String get collectionCompletedAlready;
+String get errorNavigatingToLocation;
+String get collectionCompletedSuccessfully;
+String get errorOpeningWeightPage;
+String get weightUpdatedSuccessfully;
+String get errorUpdatingWeight;
+String get removeWeight;
+String get areYouSureRemoveWeight;
+String get remove;
+String get weightRemovedSuccessfully;
+String get failedToRemoveWeight;
+String get externalNavigationComingSoon;
+String get todaysCollections;
+String get onMap;
+String get pending;
+String get todaysTotalWeight;
+String get completedCollectionsHidden;
+String get centerTodaysPendingCollections;
+String get viewDetails;
+String get addWeight;
+String get navigate;
+String get updateWeight;
+String get timeRequested;
+String get date;
+String get requested;
+String get weight;
+String get address;
+String get coordinatess; // Note: fixed typo from 'coordinatess'
+String get locationSource;
+String get userProfile;
+String get currentGPS;
 
 }
 

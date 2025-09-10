@@ -452,7 +452,7 @@ String get seeCustomerLocations => 'පාරිභෝගික ස්ථාන 
 String get profileSettings => 'පැතිකඩ සැකසීම්';
 
 @override
-String get manageCollectorProfile => 'ඔබේ එකතුකරන්නාගේ පැතිකඩ කළමනාකරණය කරන්න';
+String get manageCollectorProfile => 'ඔබේ පැතිකඩ කළමනාකරණය කරන්න';
 
 @override
 String get chooseActionToStart => 'ආරම්භ කිරීමට ක්‍රියාවක් තෝරන්න';
@@ -461,9 +461,301 @@ String get chooseActionToStart => 'ආරම්භ කිරීමට ක්‍�
 String get logout => 'ඉවත් වන්න';
 
 @override
-String get areYouSureLogout => 'ඔබට ලොග් අවුට් වීමට අවශ්‍යද?';
+String get areYouSureLogout => '    ඔබට ලොග් අවුට් වීමට අවශ්‍යද?';
 
 @override
 String get map => 'සිතියම';
+
+
+
+
+
+// Notification Page
+@override
+String get customerNotifications => 'පාරිභෝගික දැනුම්දීම්';
+
+@override
+String get loadingNotifications => 'දැනුම්දීම් පූරණය වෙමින්...';
+
+@override
+String get failedToLoadNotifications => 'දැනුම්දීම් පූරණය කිරීමට අසමර්ථ විය';
+
+@override
+String get error => 'දෝෂය';
+
+@override
+String get allCaughtUp => 'සියල්ල සම්පූර්ණයි!';
+
+@override
+String get noPendingCollectionRequests => 'පොරොත්තු වන එකතුකිරීම් අයැදුම් නැත';
+
+@override
+String get allCustomersCollectedToday => 'අද සියළුම පාරිභෝගිකයින්ගෙන් එකතු කරන ලදී';
+
+@override
+String get pendingCollection => 'පොරොත්තු වන එකතුකිරීම';
+
+@override
+String get minutesAgo => 'මි. පෙර';
+
+@override
+String get hoursAgo => 'පැ. පෙර';
+
+@override
+String get daysAgoShort => 'දි. පෙර';
+
+@override
+String get at => 'දී';
+
+@override
+String get collect => ' එකතු\nකරන්න';
+
+
+// Collection History Page
+@override
+String get collectionHistory => 'එකතුව';
+
+@override
+String get searchByNameOrReg => 'නම හෝ ලියාපදිංචි අංකයෙන් සොයන්න...';
+
+@override
+String get sortByDate => 'දිනයෙන් වර්ගීකරණය';
+
+@override
+String get sortByName => 'නමෙන් වර්ගීකරණය';
+
+@override
+String get sortByRegNo => 'ලියාපදිංචි අංකයෙන් වර්ගීකරණය';
+
+@override
+String get sortByWeight => 'බරෙන් වර්ගීකරණය';
+
+@override
+String get ascending => 'ආරෝහණ';
+
+@override
+String get descending => 'අවරෝහණ';
+
+@override
+String get today => 'අද';
+
+@override
+String get loadingCollectionHistory => 'එකතුකිරීමේ ඉතිහාසය පූරණය වෙමින්...';
+
+@override
+String get somethingWentWrong => 'යමක් වරදයි';
+
+@override
+String get unableToLoadHistory => 'එකතුකිරීමේ ඉතිහාසය පූරණය කළ නොහැක';
+
+@override
+String get filterByDateRange => 'දින පරාසයෙන් පෙරහන් කරන්න';
+
+@override
+String get startDate => 'ආරම්භක දිනය';
+
+@override
+String get endDate => 'අවසාන දිනය';
+
+@override
+String get foundCollectionsInRangee => 'තෝරාගත් දින පරාසයේ එකතුකිරීම් {count}ක් හමු විය';
+
+@override
+String get totalCollections => 'එකතුකිරීම්';
+
+@override
+String get totalWeight => 'මුළු බර';
+
+@override
+String get collected => 'එකතු කරන ලදී';
+
+@override
+String get noCollectionsToday => 'අද එකතුකිරීම් නැත';
+
+@override
+String get noCollectionHistory => 'එකතුකිරීමේ ඉතිහාසය නැත';
+
+@override
+String get noCollectionsTodayDescription => 'ඔබ අද කිසිඳු පාරිභෝගිකයෙකුගෙන් එකතු කර නැත. ඔබේ ප්‍රගතිය මෙහි බැලීමට එකතු කිරීම ආරම්භ කරන්න!';
+
+@override
+String get noCollectionHistoryDescription => 'ඔබ තවම කිසිඳු එකතුකිරීමක් කර නැත. ඔබ එකතු කිරීම ආරම්භ කළ පසු, ඔබේ ඉතිහාසය මෙහි දිස් වේ.';
+
+@override
+String get startCollecting => 'එකතු කිරීම ආරම්භ කරන්න';
+
+@override
+String get collectionDetails => 'එකතුකිරීමේ විස්තර';
+
+@override
+String get completed => 'සම්පූර්ණයි';
+
+@override
+String get customerName => 'පාරිභෝගිකයාගේ නම';
+
+@override
+String get registrationNo => 'ලියාපදිංචි අංකය';
+
+@override
+String get weightCollected => 'එකතු කළ බර';
+
+@override
+String get collectionDate => 'එකතුකිරීමේ දිනය';
+
+@override
+String get collectionTime => 'එකතුකිරීමේ වේලාව';
+
+@override
+String get collectedBy => 'එකතු කරන ලද්දේ';
+
+@override
+String get remarks => 'සටහන්';
+
+@override
+String get close => 'වසන්න';
+
+@override
+String get collector => 'එකතුකරන්නා';
+
+
+// Collector Map Page
+@override
+String get todaysCustomerLocations => 'අද පාරිභෝගික ස්ථාන';
+
+@override
+String get changeMapLayer => 'සිතියම් ස්තරය වෙනස් කරන්න';
+
+@override
+String get centerTodaysMarkers => 'අද සලකුණු මධ්‍යගත කරන්න';
+
+@override
+String get errorLoadingMap => 'සිතියම පූරණයේ දෝෂය';
+
+@override
+String get noCollectionRequestsToday => 'අදට එකතුකිරීමේ ඉල්ලීම් නොමැත.';
+
+@override
+String get noLocationDataAvailable => 'අදට එකතුකිරීමේ ඉල්ලීම් {count}ක් හමු වූ නමුත් ස්ථාන දත්ත නොමැත.\n\nසම්භාව්‍ය විසඳුම්:\n1. පාරිභෝගිකයින්ට ඉල්ලීම් කරන විට ස්ථානය සක්‍රිය කරන ලෙස කරන්න\n2. ස්ථාන දත්ත වෙනත් ආකෘතියකින් ගබඩා කර ඇත්දැයි පරීක්ෂා කරන්න\n3. Firestore ආරක්ෂක නීති ස්ථාන කියවීමට ඉඩ දෙන්නේදැයි තහවුරු කරන්න';
+
+@override
+String get switchedToMapView => '{layerName} දර්ශනයට මාරු විය';
+
+@override
+String get streetMap => 'වීදි සිතියම';
+
+@override
+String get satellite => 'චන්ද්‍රිකා';
+
+@override
+String get terrain => 'භූමි ප්‍රදේශ';
+
+@override
+String get collectionCompletedAlready => 'මෙම එකතුව දැනටමත් සම්පූර්ණ කර ඇත';
+
+@override
+String get errorNavigatingToLocation => 'ස්ථානයට සැරිසැරීමේ දෝෂය';
+
+@override
+String get collectionCompletedSuccessfully => 'එකතුව සාර්ථකව සම්පූර්ණ විය!';
+
+@override
+String get errorOpeningWeightPage => 'බර පිටුව විවෘත කිරීමේ දෝෂය: {error}';
+
+@override
+String get weightUpdatedSuccessfully => 'බර සාර්ථකව යාවත්කාලීන විය!';
+
+@override
+String get errorUpdatingWeight => 'බර යාවත්කාලීන කිරීමේ දෝෂය: {error}';
+
+@override
+String get removeWeight => 'බර ඉවත් කරන්න';
+
+@override
+String get areYouSureRemoveWeight => '{customerName} සඳහා බර ඉවත් කිරීමට ඔබට විශ්වාසද?';
+
+@override
+String get remove => 'ඉවත් කරන්න';
+
+@override
+String get weightRemovedSuccessfully => 'බර සාර්ථකව ඉවත් කරන ලදී';
+
+@override
+String get failedToRemoveWeight => 'බර ඉවත් කිරීමට අසමත් විය: {error}';
+
+@override
+String get externalNavigationComingSoon => 'බාහිර සංචාලන විශේෂාංගය ඉක්මනින්!';
+
+@override
+String get todaysCollections => 'අද එකතුවීම්';
+
+@override
+String get onMap => 'සිතියමේ';
+
+@override
+String get pending => 'පොරොත්තුවෙන්';
+
+@override
+String get todaysTotalWeight => 'අද මුළු බර: {weight} කි.ග්‍රා.';
+
+@override
+String get completedCollectionsHidden => 'අද සම්පූර්ණ කළ එකතුවීම් {count} (සිතියමෙන් සැඟවී ඇත)';
+
+@override
+String get centerTodaysPendingCollections => 'අද පොරොත්තු එකතුවීම් මධ්‍යගත කරන්න';
+
+@override
+String get viewDetails => 'විස්තර බලන්න';
+
+@override
+String get addWeight => 'බර එක් කරන්න';
+
+@override
+String get navigate => 'සංචාලනය';
+
+@override
+String get updateWeight => 'බර යාවත්කාලීන කරන්න';
+
+@override
+String get timeRequested => 'වේලාව';
+
+@override
+String get date => 'දිනය';
+
+@override
+String get requested => 'ඉල්ලීම';
+
+@override
+String get weight => 'බර';
+
+@override
+String get address => 'ලිපිනය';
+
+@override
+String get coordinatess => 'ඛණ්ඩාංක';
+
+@override
+String get locationSource => 'ස්ථාන මූලාශ්‍රය';
+
+@override
+String get userProfile => 'පරිශීලක පැතිකඩ';
+
+@override
+String get currentGPS => 'වර්තමාන GPS';
+
+@override
+String customerCollectedSuccessfullyWithWeight(String customerName, double weight) {
+  return '$customerName සාර්ථකව එකතු කරන ලදී (${weight}kg)';
+}
+
+@override
+String customerCollectedSuccessfully(String customerName) {
+  return '$customerName සාර්ථකව එකතු කරන ලදී';
+}
+
+  @override
+  String foundCollectionsInRange(int count) {
+    // TODO: implement foundCollectionsInRange
+    throw UnimplementedError();
+  }
 
 }
