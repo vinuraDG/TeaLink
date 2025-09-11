@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 
 class CollectorMapPage extends StatefulWidget {
   const CollectorMapPage({super.key});
@@ -120,7 +121,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Failed to load map data: ${e.toString()}';
+          _errorMessage = AppLocalizations.of(context)!.failedToLoadNotifications + ': ${e.toString()}';
           _isLoading = false;
         });
       }
@@ -157,7 +158,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
           print('Notification stream error: $error');
           if (mounted) {
             setState(() {
-              _errorMessage = 'Error loading notifications: ${error.toString()}';
+              _errorMessage = AppLocalizations.of(context)!.error + ' loading notifications: ${error.toString()}';
               _isLoading = false;
             });
           }
@@ -280,9 +281,9 @@ class _CollectorMapPageState extends State<CollectorMapPage>
       _isLoading = false;
       
       if (todaysNotifications.isEmpty) {
-        _errorMessage = 'No collection requests found for today.';
+        _errorMessage = AppLocalizations.of(context)!.noCollectionRequestsToday;
       } else if (todaysDocumentsWithLocation == 0) {
-        _errorMessage = 'Found ${todaysNotifications.length} collection requests for today, but none have location data.\n\nPossible solutions:\n1. Ask customers to enable location when requesting\n2. Check if location data is stored in a different format\n3. Verify Firestore security rules allow location reading';
+        _errorMessage = AppLocalizations.of(context)!.noLocationDataAvailable.replaceAll('{count}', '${todaysNotifications.length}');
       } else {
         _errorMessage = null;
         print('Successfully loaded $todaysDocumentsWithLocation notifications with location out of ${todaysNotifications.length} total for today');
@@ -492,7 +493,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     } catch (e) {
       print('Error fitting today\'s pending markers in view: $e');
       if (mounted) {
-        _showErrorSnackBar('Error centering map: ${e.toString()}');
+        _showErrorSnackBar(AppLocalizations.of(context)!.errorNavigatingToLocation + ': ${e.toString()}');
       }
     }
   }
@@ -503,7 +504,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     
     // Only allow selection of pending notifications on map
     if (notification.status != 'Pending') {
-      _showInfoSnackBar('This collection has already been completed');
+      _showInfoSnackBar(AppLocalizations.of(context)!.collectionCompletedAlready);
       return;
     }
     
@@ -520,7 +521,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     } catch (e) {
       print('Error moving map to notification: $e');
       if (mounted) {
-        _showErrorSnackBar('Error navigating to location');
+        _showErrorSnackBar(AppLocalizations.of(context)!.errorNavigatingToLocation);
       }
     }
   }
@@ -585,7 +586,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                         ),
                       ),
                       Text(
-                        'Reg: ${notification.regNo}',
+                        '${AppLocalizations.of(context)!.registrationNo}: ${notification.regNo}',
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -608,7 +609,9 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                     ),
                   ),
                   child: Text(
-                    notification.status,
+                    notification.status == 'Pending' 
+                      ? AppLocalizations.of(context)!.pending 
+                      : AppLocalizations.of(context)!.collected,
                     style: TextStyle(
                       color: notification.status == 'Pending' 
                         ? Colors.orange[700] 
@@ -631,24 +634,24 @@ class _CollectorMapPageState extends State<CollectorMapPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow(Icons.access_time, 'Time', notification.time),
-                  _buildDetailRow(Icons.calendar_today, 'Date', notification.date),
-                  _buildDetailRow(Icons.schedule, 'Requested', notification.timeAgo),
+                  _buildDetailRow(Icons.access_time, AppLocalizations.of(context)!.timeRequested, notification.time),
+                  _buildDetailRow(Icons.calendar_today, AppLocalizations.of(context)!.date, notification.date),
+                  _buildDetailRow(Icons.schedule, AppLocalizations.of(context)!.requested, notification.timeAgo),
                   if (notification.weight != null)
-                    _buildDetailRow(Icons.scale, 'Weight', '${notification.weight} ${notification.weightUnit ?? 'kg'}'),
+                    _buildDetailRow(Icons.scale, AppLocalizations.of(context)!.weight, '${notification.weight} ${notification.weightUnit ?? 'kg'}'),
                   if (notification.address?.isNotEmpty == true)
-                    _buildDetailRow(Icons.location_on, 'Address', notification.address!),
+                    _buildDetailRow(Icons.location_on, AppLocalizations.of(context)!.address, notification.address!),
                   if (notification.hasLocation)
                     _buildDetailRow(
                       Icons.gps_fixed, 
-                      'Coordinates', 
+                      AppLocalizations.of(context)!.coordinatess, 
                       '${notification.latitude!.toStringAsFixed(6)}, ${notification.longitude!.toStringAsFixed(6)}'
                     ),
                   if (notification.locationSource != null)
                     _buildDetailRow(
                       Icons.info, 
-                      'Location Source', 
-                      notification.locationSource == 'stored' ? 'User Profile' : 'Current GPS'
+                      AppLocalizations.of(context)!.locationSource, 
+                      notification.locationSource == 'stored' ? AppLocalizations.of(context)!.userProfile : AppLocalizations.of(context)!.currentGPS
                     ),
                   
                   const Spacer(),
@@ -661,7 +664,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                           child: ElevatedButton.icon(
                             onPressed: () => _markAsCollected(notification),
                             icon: const Icon(Icons.scale),
-                            label: const Text('Add Weight'),
+                            label: Text(AppLocalizations.of(context)!.addWeight),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               foregroundColor: Colors.white,
@@ -676,7 +679,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                         ElevatedButton.icon(
                           onPressed: () => _openInMaps(notification),
                           icon: const Icon(Icons.navigation),
-                          label: const Text('Navigate'),
+                          label: Text(AppLocalizations.of(context)!.navigate),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             foregroundColor: Colors.white,
@@ -695,7 +698,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                           child: ElevatedButton.icon(
                             onPressed: () => _updateWeight(notification),
                             icon: const Icon(Icons.edit),
-                            label: const Text('Update Weight'),
+                            label: Text(AppLocalizations.of(context)!.updateWeight),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.orange,
                               foregroundColor: Colors.white,
@@ -710,7 +713,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                         ElevatedButton.icon(
                           onPressed: () => _removeWeight(notification),
                           icon: const Icon(Icons.delete),
-                          label: const Text('Remove'),
+                          label: Text(AppLocalizations.of(context)!.remove),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
@@ -742,7 +745,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   Icon(Icons.info_outline, color: Colors.green[700], size: 14),
                   const SizedBox(width: 6),
                   Text(
-                    '$todaysCollectedCount completed collections today (hidden from map)',
+                    AppLocalizations.of(context)!.completedCollectionsHidden.replaceAll('{count}', '$todaysCollectedCount'),
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.green[700],
@@ -769,17 +772,17 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     String layerName = _currentTileLayer;
     switch (_currentTileLayer) {
       case 'openstreetmap':
-        layerName = 'Street Map';
+        layerName = AppLocalizations.of(context)!.streetMap;
         break;
       case 'satellite':
-        layerName = 'Satellite';
+        layerName = AppLocalizations.of(context)!.satellite;
         break;
       case 'terrain':
-        layerName = 'Terrain';
+        layerName = AppLocalizations.of(context)!.terrain;
         break;
     }
     
-    _showInfoSnackBar('Switched to $layerName view');
+    _showInfoSnackBar(AppLocalizations.of(context)!.switchedToMapView.replaceAll('{layerName}', layerName));
   }
 
   void _showSuccessSnackBar(String message) {
@@ -849,9 +852,10 @@ class _CollectorMapPageState extends State<CollectorMapPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Today\'s Customer Locations',
-          style: TextStyle(
+        title: Text(
+          AppLocalizations.of(context)!.todaysCustomerLocations,
+          style: const TextStyle(
+            fontSize: 19,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
@@ -867,19 +871,19 @@ class _CollectorMapPageState extends State<CollectorMapPage>
             icon: const Icon(Icons.layers),
             onPressed: _changeTileLayer,
             color: Colors.white,
-            tooltip: 'Change map layer',
+            tooltip: AppLocalizations.of(context)!.changeMapLayer,
           ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fitMarkersInView,
             color: Colors.white,
-            tooltip: 'Center today\'s markers',
+            tooltip: AppLocalizations.of(context)!.centerTodaysMarkers,
           ),
         ],
       ),
       
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : _errorMessage != null
               ? Center(
                   child: Column(
@@ -888,7 +892,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                       Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
                       const SizedBox(height: 16),
                       Text(
-                        'Error Loading Map',
+                        AppLocalizations.of(context)!.errorLoadingMap,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -907,7 +911,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _initializeMap,
-                        child: const Text('Retry'),
+                        child: Text(AppLocalizations.of(context)!.retry),
                       ),
                     ],
                   ),
@@ -988,7 +992,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                                               ),
                                             ),
                                             Text(
-                                              'Reg: ${_selectedNotification!.regNo}',
+                                              '${AppLocalizations.of(context)!.registrationNo}: ${_selectedNotification!.regNo}',
                                               style: TextStyle(
                                                 color: Colors.grey[600],
                                                 fontSize: 14,
@@ -996,7 +1000,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                                             ),
                                             if (_selectedNotification!.weight != null)
                                               Text(
-                                                'Weight: ${_selectedNotification!.weight} ${_selectedNotification!.weightUnit ?? 'kg'}',
+                                                '${AppLocalizations.of(context)!.weight}: ${_selectedNotification!.weight} ${_selectedNotification!.weightUnit ?? 'kg'}',
                                                 style: TextStyle(
                                                   color: Colors.blue[700],
                                                   fontSize: 13,
@@ -1029,7 +1033,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                                               borderRadius: BorderRadius.circular(10),
                                             ),
                                           ),
-                                          child: const Text('View Details'),
+                                          child: Text(AppLocalizations.of(context)!.viewDetails),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -1043,7 +1047,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                                               borderRadius: BorderRadius.circular(10),
                                             ),
                                           ),
-                                          child: const Text('Add Weight'),
+                                          child: Text(AppLocalizations.of(context)!.addWeight),
                                         ),
                                     ],
                                   ),
@@ -1064,7 +1068,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                 onPressed: _fitMarkersInView,
                 backgroundColor: kMainColor,
                 foregroundColor: Colors.white,
-                tooltip: 'Center today\'s pending collections',
+                tooltip: AppLocalizations.of(context)!.centerTodaysPendingCollections,
                 child: const Icon(Icons.my_location),
               ),
             )
@@ -1094,22 +1098,22 @@ class _CollectorMapPageState extends State<CollectorMapPage>
             elevation: 0,
             backgroundColor: Colors.transparent,
             type: BottomNavigationBarType.fixed,
-            items: const [
+            items: [
               BottomNavigationBarItem(
                 icon: Icon(Icons.home_rounded, size: 24),
-                label: 'Home',
+                label: AppLocalizations.of(context)!.home,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.map_sharp, size: 24),
-                label: 'Map',
+                label: AppLocalizations.of(context)!.map,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.history, size: 24),
-                label: 'History',
+                label: AppLocalizations.of(context)!.history,
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person, size: 24),
-                label: 'Profile',
+                label: AppLocalizations.of(context)!.profile,
               ),
             ],
           ),
@@ -1165,7 +1169,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
       );
 
       if (result == true && mounted) {
-        _showSuccessSnackBar('Collection completed successfully!');
+        _showSuccessSnackBar(AppLocalizations.of(context)!.collectionCompletedSuccessfully);
         
         if (_selectedNotification?.id == notification.id) {
           setState(() => _selectedNotification = null);
@@ -1175,7 +1179,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Error opening weight page: ${e.toString()}');
+        _showErrorSnackBar(AppLocalizations.of(context)!.errorOpeningWeightPage.replaceAll('{error}', e.toString()));
       }
     }
   }
@@ -1199,7 +1203,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
       );
 
       if (result == true && mounted) {
-        _showSuccessSnackBar('Weight updated successfully!');
+        _showSuccessSnackBar(AppLocalizations.of(context)!.weightUpdatedSuccessfully);
         
         if (_selectedNotification?.id == notification.id) {
           setState(() => _selectedNotification = null);
@@ -1209,7 +1213,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Error updating weight: ${e.toString()}');
+        _showErrorSnackBar(AppLocalizations.of(context)!.errorUpdatingWeight.replaceAll('{error}', e.toString()));
       }
     }
   }
@@ -1218,17 +1222,17 @@ class _CollectorMapPageState extends State<CollectorMapPage>
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Weight'),
-        content: Text('Are you sure you want to remove the weight for ${notification.name}?'),
+        title: Text(AppLocalizations.of(context)!.removeWeight),
+        content: Text(AppLocalizations.of(context)!.areYouSureRemoveWeight.replaceAll('{customerName}', notification.name)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context)!.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Remove', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.remove, style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -1248,7 +1252,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
         });
         
         if (mounted) {
-          _showSuccessSnackBar('Weight removed successfully');
+          _showSuccessSnackBar(AppLocalizations.of(context)!.weightRemovedSuccessfully);
           
           if (_selectedNotification?.id == notification.id) {
             setState(() => _selectedNotification = null);
@@ -1258,14 +1262,14 @@ class _CollectorMapPageState extends State<CollectorMapPage>
         }
       } catch (e) {
         if (mounted) {
-          _showErrorSnackBar('Failed to remove weight: ${e.toString()}');
+          _showErrorSnackBar(AppLocalizations.of(context)!.failedToRemoveWeight.replaceAll('{error}', e.toString()));
         }
       }
     }
   }
 
   void _openInMaps(NotificationData notification) {
-    _showInfoSnackBar('External navigation feature coming soon!');
+    _showInfoSnackBar(AppLocalizations.of(context)!.externalNavigationComingSoon);
   }
 
   Widget _buildPulseAnimation() {
@@ -1362,7 +1366,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   Icon(Icons.today, color: kMainColor, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'Today\'s Collections',
+                    AppLocalizations.of(context)!.todaysCollections,
                     style: TextStyle(
                       color: kMainColor,
                       fontWeight: FontWeight.bold,
@@ -1377,19 +1381,19 @@ class _CollectorMapPageState extends State<CollectorMapPage>
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildStatItem(
-                  'On Map',
+                  AppLocalizations.of(context)!.onMap,
                   todaysPendingOnMapCount.toString(),
                   Icons.location_on,
                   kMainColor,
                 ),
                 _buildStatItem(
-                  'Pending',
+                  AppLocalizations.of(context)!.pending,
                   todaysPendingCount.toString(),
                   Icons.pending,
                   Colors.orange,
                 ),
                 _buildStatItem(
-                  'Completed',
+                  AppLocalizations.of(context)!.completed,
                   todaysCollectedCount.toString(),
                   Icons.check_circle,
                   Colors.green,
@@ -1411,7 +1415,7 @@ class _CollectorMapPageState extends State<CollectorMapPage>
                   Icon(Icons.scale, color: Colors.blue[700], size: 16),
                   const SizedBox(width: 8),
                   Text(
-                    'Today\'s Total Weight: ${_calculateTodaysTotalWeight()} kg',
+                    AppLocalizations.of(context)!.todaysTotalWeight.replaceAll('{weight}', _calculateTodaysTotalWeight()),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       color: Colors.blue[700],

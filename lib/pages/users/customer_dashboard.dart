@@ -899,6 +899,55 @@ Future<void> debugWeekCalculations() async {
     );
   }
 
+  void _showLogoutDialog() {
+    if (!mounted) return;
+    final l10n = AppLocalizations.of(context);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Center(
+            child: Text(
+              l10n?.logout ?? 'Logout',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          content: Text(l10n?.areYouSureLogout ?? 'Are you sure you want to logout?'),
+          actions: [
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    l10n?.cancel ?? 'Cancel',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _logout(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(l10n?.logout ?? 'Logout'),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     
@@ -968,7 +1017,7 @@ Future<void> debugWeekCalculations() async {
     
     return WillPopScope(
       onWillPop: () async {
-        await _logout(context);
+        _showLogoutDialog();
         return false;
       },
       child: ScaffoldMessenger(
@@ -1005,7 +1054,7 @@ Future<void> debugWeekCalculations() async {
               ),
               child: IconButton(
                 icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-                onPressed: () => _logout(context),
+                onPressed: () => _showLogoutDialog(),
               ),
             ),
             actions: [
@@ -1017,7 +1066,7 @@ Future<void> debugWeekCalculations() async {
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.logout, color: Colors.white, size: 20),
-                  onPressed: () => _logout(context),
+                  onPressed: () => _showLogoutDialog(),
                 ),
               ),
             ],
@@ -1436,7 +1485,7 @@ Future<void> debugWeekCalculations() async {
               ),
               const SizedBox(height: 12),
               Text(
-                l10n?.weeklyHarvestReady.replaceAll('{amount}', weeklyHarvest) ?? 
+                l10n?.weeklyHarvestReady?.replaceAll('{amount}', weeklyHarvest) ?? 
                 'Your weekly harvest of $weeklyHarvest is ready for collection. Use the "Notify Collector" button to alert your assigned collector.',
                 style: TextStyle(
                   fontSize: 14,
