@@ -3,7 +3,6 @@ import 'package:TeaLink/pages/onboarding_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:TeaLink/main.dart';
 import 'package:TeaLink/providers/language_provider.dart';
 import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';

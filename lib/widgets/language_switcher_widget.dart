@@ -1,3 +1,4 @@
+import 'package:TeaLink/constants/colors.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/language_provider.dart';
@@ -48,7 +49,7 @@ class LanguageSwitcherWidget extends StatelessWidget {
                 ),
                 if (isSelected) ...[
                   const Spacer(),
-                  const Icon(Icons.check, color: Colors.green, size: 20),
+                  const Icon(Icons.check, color: kMainColor, size: 20),
                 ],
               ],
             ),

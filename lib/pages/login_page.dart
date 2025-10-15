@@ -403,7 +403,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: kMainColor!, width: 2),
+                                borderSide: BorderSide(color: kMainColor, width: 2),
                               ),
                               filled: true,
                               fillColor: Colors.grey[50],

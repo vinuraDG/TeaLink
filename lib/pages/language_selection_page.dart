@@ -1,3 +1,4 @@
+import 'package:TeaLink/constants/colors.dart';
 import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -160,7 +161,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: accentColor,
+                      color: kMainColor,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -274,7 +275,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                   subtitle: 'English language',
                   value: 'en',
                   icon: Icons.language,
-                  accentColor: Colors.blue,
+                  accentColor: kMainColor,
                 ),
 
                 _buildLanguageCard(
@@ -282,7 +283,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                   subtitle: 'Sinhala language',
                   value: 'si',
                   icon: Icons.translate,
-                  accentColor: Colors.green,
+                  accentColor: kMainColor,
                 ),
 
                 const Spacer(),

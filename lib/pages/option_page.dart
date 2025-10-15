@@ -6,7 +6,6 @@ import 'package:TeaLink/pages/login_page.dart';
 import 'package:TeaLink/pages/users/admin_dashboard.dart';
 import 'package:TeaLink/pages/users/collector_dashboard.dart';
 import 'package:TeaLink/pages/users/customer_dashboard.dart';
-import 'package:TeaLink/widgets/session_manager.dart';
 import 'package:TeaLink/l10n/app_localizations.dart'; // import localization
 
 class RoleButton extends StatelessWidget {

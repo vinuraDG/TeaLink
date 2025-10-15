@@ -112,7 +112,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
 
       _showSnackBar(
         "Account created successfully! Welcome to TeaLink!",
-        kMainColor!,
+        kMainColor,
         Icons.check_circle,
       );
       
@@ -299,7 +299,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide(color: kMainColor!, width: 2),
+            borderSide: BorderSide(color: kMainColor, width: 2),
           ),
           filled: true,
           fillColor: Colors.grey[50],

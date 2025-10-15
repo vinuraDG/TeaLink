@@ -380,6 +380,149 @@ String get locationSource;
 String get userProfile;
 String get currentGPS;
 
+// Admin Dashboard
+
+String get dashboard ;
+String get goodMorningAdmin ;
+String get goodAfternoonAdmin ;
+String get goodEveningAdmin ;
+String get admin ;
+String get realTimeSystemOverview ;
+String get todaysActivity;
+String get newUsers;
+String get activeAlerts;
+String get alertsNeedAttention;
+String get overview;
+String get totalUsers;
+String get customers;
+String get collectors;
+String get quickActionsTitle;
+String get manageUsers ;
+String get viewAndManageUsers;
+String get uploadPaymentSlip;
+String get checkPaymentRecords;
+String get systemAlerts;
+String get monitorSystemNotifications;
+String get logoutTitle;
+String get logoutConfirmation;
+String get logoutButton ;
+String get activeAlertsTitle;
+String get users;
+String get settings;
+
+// Manage Users Page
+  String get userManagement;
+  String get refreshUsers;
+  String get loadingUsers;
+  String get userNotAuthenticated;
+  String get userDocumentNotFound;
+  String get accessDenied;
+  String get adminAccessRequired;
+  String get errorCheckingPermissions;
+  String get errorLoadingUsers;
+  String customersCount(int count);
+  String collectorsCount(int count);
+  String get accessError;
+  String get tryAgain;
+  String get noCustomersFound;
+  String get noCollectorsFound;
+  String get customersWillAppear;
+  String get collectorsWillAppear;
+  String get unknownUser;
+  String get noEmail;
+  String get reg;
+  String get viewDetailsAction;
+  String get editUser;
+  String get deleteUser;
+  String get invalidDate;
+  String get personalInformationTitle;
+  String get fullNameLabel;
+  String get emailAddressLabel;
+  String get registrationNoLabel;
+  String get userRole;
+  String get accountInformation;
+  String get joinedDate;
+  String get lastUpdated;
+  String get done;
+  String get editUserTitle;
+  String get fullNameField;
+  String get emailAddressField;
+  String get registrationNumberField;
+  String get userRoleField;
+  String get updateUser;
+  String get nameAndEmailRequired;
+  String get userUpdatedSuccessfully;
+  String get errorUpdatingUser;
+  String get deleteUserTitle;
+  String get cannotDeleteOwnAccount;
+  String deleteUserConfirmation(String userName);
+  String get userDeletedSuccessfully;
+  String get errorDeletingUser;
+  String get payment;
+
+  // Payment Slip Page
+
+String get uploadPaymentSlipTitle;
+String get paymentSlipUpload;
+String get uploadPaymentSlipsForCustomers;
+String get selectCustomerStep;
+String get uploadPaymentSlipStep;
+String get additionalNotes;
+String get optional;
+String get tapToSelectCustomer;
+String get selectCustomerTitle;
+String get searchByNameEmailOrReg;
+String get noMatchingCustomers;
+String get tapToSelectFile;
+String get pdfJpgPngSupported;
+String get enterAdditionalNotes;
+String get clearForm;
+String get fileSelected;
+String get noFileSelected;
+String get pleaseSelectCustomer;
+String get pleaseSelectPaymentSlipFile;
+String get adminNotLoggedIn;
+String get uploadFailed;
+String get successTitle;
+String get paymentSlipUploadedTo;
+String get folder;
+String get uploadingTo;
+String get uploadPaymentSlipButton;
+String get step;
+
+// Alert Page - Main
+
+String get systemAlert;
+String get loadingAlerts;
+String get noAlertsFound;
+String get noAlertsDescription;
+String get alertDeletedSuccessfully;
+String get allAlerts;
+String get criticalAlerts;
+String get warningAlerts;
+String get infoAlerts;
+String get successAlerts;
+String get alertDescription;
+String get noDescriptionAvailable;
+String get additionalDetails;
+String get markAsRead;
+String get deleteAlert;
+String get deleteAlertConfirmation;
+String get alertMarkedAsRead;
+String get criticalAlert;
+String get warningAlert;
+String get infoAlert;
+String get successAlert;
+String get viewAlert;
+String get dismissAlert;
+String get readAlerts;
+String get unreadAlerts;
+String get clearAllAlerts;
+String get noUnreadAlerts;
+String get alertsCleared ;
+String get swipeToMarkAsRead;
+String get swipeToDelete;
+
 }
 
 class _AppLocalizationsDelegate

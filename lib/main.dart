@@ -1,4 +1,5 @@
 import 'package:TeaLink/l10n/app_localizations.dart';
+import 'package:TeaLink/pages/users/admin_card/admin_payment.dart';
 import 'package:TeaLink/pages/users/admin_card/admin_setting.dart';
 import 'package:TeaLink/pages/users/admin_card/manage_users.dart';
 import 'package:TeaLink/pages/users/admin_dashboard.dart';
@@ -116,15 +117,15 @@ class MyApp extends StatelessWidget {
               '/option': (context) => const RoleSelectionPage(), // Added const
 
               '/Admin': (context) => AdminDashboard(), // Added const
-            
               '/admin_home': (context) => AdminDashboard(),
+              '/admin_payment_slip': (context) => AdminPaymentSlipPage(),
               '/admin_users': (context) => ManageUsersPage(),
               '/admin_settings': (context) => const AdminSettingsPage(),
 
               '/customerDashboard': (context) => const CustomerDashboard(),
               '/customer_profile': (context) => const ProfilePage(),
               '/customer_trends': (context) => const HarvestTrendsPage(),
-              '/customer_payments': (context) => const CustomerPaymentPage(),
+              '/customer_payments': (context) => const CustomerPaymentPage(customerId: 'hFY7AwdF2wM1WsKtxpF6K3T6MbV2'),
               '/customer_home': (context) => const CustomerDashboard(),
               '/customer_collector_info': (context) => const CollectorInfoPage(
                 collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',

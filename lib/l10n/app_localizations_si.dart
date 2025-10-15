@@ -742,6 +742,593 @@ String get userProfile => 'පරිශීලක පැතිකඩ';
 @override
 String get currentGPS => 'වර්තමාන GPS';
 
+//admin Side
+// Complete Sinhala Localization for Admin Dashboard
+// Add these translations to app_localizations_si.dart
+
+// Admin Dashboard - Main
+@override
+String get dashboard => 'පාලන පුවරුව';
+
+@override
+String get goodMorningAdmin => 'සුභ උදෑසනක්';
+
+@override
+String get goodAfternoonAdmin => 'සුභ දහවලක්';
+
+@override
+String get goodEveningAdmin => 'සුභ සන්ධ්‍යාවක්';
+
+@override
+String get admin => 'පරිපාලක';
+
+@override
+String get realTimeSystemOverview => 'තථ්‍ය කාලීන පද්ධති දළ විශ්ලේෂණය';
+
+// Today's Activity Section
+@override
+String get todaysActivity => 'අද ක්‍රියාකාරකම්';
+
+@override
+String get newUsers => 'නව පරිශීලකයින්';
+
+@override
+String get activeAlerts => 'සක්‍රිය ඇඟවීම්';
+
+@override
+String get alertsNeedAttention => 'අවධානය අවශ්‍ය ඇඟවීම් {count}ක්';
+
+@override
+String get activeAlertsTitle => 'සක්‍රිය ඇඟවීම්';
+
+// Overview Section
+@override
+String get overview => 'දළ විශ්ලේෂණය';
+
+@override
+String get totalUsers => 'මුළු පරිශීලකයින්';
+
+@override
+String get customers => 'පාරිභෝගිකයින්';
+
+@override
+String get collectors => 'එකතුකරන්නන්';
+
+
+// Quick Actions Section
+@override
+String get quickActionsTitle => 'ඉක්මන් ක්‍රියා';
+
+@override
+String get manageUsers => 'පරිශීලකයින් කළමනාකරණය';
+
+@override
+String get viewAndManageUsers => 'සියළුම පරිශීලකයින් බලන්න සහ කළමනාකරණය කරන්න';
+
+@override
+String get uploadPaymentSlip => 'ගෙවීම් පත්‍රිකාව උඩුගත කරන්න';
+
+@override
+String get checkPaymentRecords => 'ගෙවීම් වාර්තා පරීක්ෂා කරන්න';
+
+@override
+String get systemAlerts => 'පද්ධති ඇඟවීම්';
+
+@override
+String get monitorSystemNotifications => 'පද්ධති දැනුම්දීම් නිරීක්ෂණය කරන්න';
+
+// Logout Dialog
+@override
+String get logoutTitle => 'පිටවීම';
+
+@override
+String get logoutConfirmation => 'ඔබට පිටවීමට අවශ්‍යද?';
+
+@override
+String get logoutButton => 'පිටවීම';
+
+
+@override
+String get users => 'පරිශීලකයින්';
+
+@override
+String get settings => 'සැකසීම්';
+
+
+// Manage Users Page
+@override
+String get userManagement => 'පරිශීලක කළමනාකරණය';
+
+@override
+String get refreshUsers => 'පරිශීලකයින් නැවුම් කරන්න';
+
+@override
+String get loadingUsers => 'පරිශීලකයින් පූරණය වෙමින්...';
+
+@override
+String get userNotAuthenticated => 'පරිශීලකයා සත්‍යාපනය කර නැත';
+
+@override
+String get userDocumentNotFound => 'පරිශීලක ලේඛනය හමු නොවීය';
+
+@override
+String get accessDenied => 'ප්‍රවේශය ප්‍රතික්ෂේප විය. පරිපාලක වරප්‍රසාද අවශ්‍යයි.';
+
+@override
+String get adminAccessRequired => 'පරිපාලක ප්‍රවේශය අවශ්‍යයි';
+
+@override
+String get errorCheckingPermissions => 'අවසර පරීක්ෂා කිරීමේ දෝෂය';
+
+@override
+String get errorLoadingUsers => 'පරිශීලකයින් පූරණයේ දෝෂය';
+
+@override
+String customersCount(int count) => 'පාරිභෝගිකයින් ($count)';
+
+@override
+String collectorsCount(int count) => 'එකතුකරන්නන් ($count)';
+
+@override
+String get accessError => 'ප්‍රවේශ දෝෂය';
+
+@override
+String get tryAgain => 'නැවත උත්සාහ කරන්න';
+
+@override
+String get noCustomersFound => 'පාරිභෝගිකයින් හමු නොවීය';
+
+@override
+String get noCollectorsFound => 'එකතුකරන්නන් හමු නොවීය';
+
+@override
+String get customersWillAppear => 'පාරිභෝගිකයින් ලියාපදිංචි වූ පසු මෙහි දිස් වේ';
+
+@override
+String get collectorsWillAppear => 'එකතුකරන්නන් ලියාපදිංචි වූ පසු මෙහි දිස් වේ';
+
+@override
+String get unknownUser => 'නොදන්නා පරිශීලකයා';
+
+@override
+String get noEmail => 'ඊමේල් නැත';
+
+@override
+String get reg => 'ලි.අ';
+
+@override
+String get viewDetailsAction => 'විස්තර බලන්න';
+
+@override
+String get editUser => 'සංස්කරණය';
+
+@override
+String get deleteUser => 'පරිශීලකයා මකන්න';
+
+@override
+String get invalidDate => 'වලංගු නොවන දිනය';
+
+@override
+String get personalInformationTitle => 'පෞද්ගලික තොරතුරු';
+
+@override
+String get fullNameLabel => 'සම්පූර්ණ නම';
+
+@override
+String get emailAddressLabel => 'ඊමේල් ලිපිනය';
+
+@override
+String get registrationNoLabel => 'ලියාපදිංචි අංකය';
+
+@override
+String get userRole => 'පරිශීලක භූමිකාව';
+
+@override
+String get accountInformation => 'ගිණුම් තොරතුරු';
+
+@override
+String get joinedDate => 'සම්බන්ධ වූ දිනය';
+
+@override
+String get lastUpdated => 'අවසන් යාවත්කාලීනය';
+
+@override
+String get done => 'අවසන්';
+
+@override
+String get editUserTitle => 'සංස්කරණය කරන්න';
+
+@override
+String get fullNameField => 'සම්පූර්ණ නම';
+
+@override
+String get emailAddressField => 'ඊමේල් ලිපිනය';
+
+@override
+String get registrationNumberField => 'ලියාපදිංචි අංකය';
+
+@override
+String get userRoleField => 'පරිශීලක භූමිකාව';
+
+@override
+String get updateUser => 'පරිශීලකයා යාවත්කාලීන කරන්න';
+
+@override
+String get nameAndEmailRequired => 'නම සහ ඊමේල් අවශ්‍යයි';
+
+@override
+String get userUpdatedSuccessfully => 'පරිශීලකයා සාර්ථකව යාවත්කාලීන විය';
+
+@override
+String get errorUpdatingUser => 'පරිශීලකයා යාවත්කාලීන කිරීමේ දෝෂය';
+
+@override
+String get deleteUserTitle => 'පරිශීලකයා මකන්න';
+
+@override
+String get cannotDeleteOwnAccount => 'ඔබේම පරිපාලක ගිණුම මැකිය නොහැක';
+
+@override
+String deleteUserConfirmation(String userName) => 
+    '"$userName" මැකීමට ඔබට විශ්වාසද? මෙම ක්‍රියාව අහෝසි කළ නොහැකි අතර සියලුම පරිශීලක දත්ත ස්ථිරවම ඉවත් වේ.';
+
+@override
+String get userDeletedSuccessfully => 'පරිශීලකයා සාර්ථකව මකා දමන ලදී';
+
+@override
+String get errorDeletingUser => 'පරිශීලකයා මකාදැමීමේ දෝෂය';
+
+@override
+String get payment => 'ගෙවීම';
+
+// Payment Slip Page - Main Titles
+@override
+String get uploadPaymentSlipTitle => 'ගෙවීම් පත්‍රිකාව උඩුගත කරන්න';
+
+@override
+String get paymentSlipUpload => 'ගෙවීම් පත්‍රිකාව උඩුගත කිරීම';
+
+@override
+String get uploadPaymentSlipsForCustomers => 'පාරිභෝගිකයින් සඳහා ගෙවීම් පත්‍රිකා උඩුගත කරන්න';
+
+// Step Headers
+@override
+String get selectCustomerStep => 'පාරිභෝගිකයා තෝරන්න';
+
+@override
+String get uploadPaymentSlipStep => 'ගෙවීම් උඩුගත කරන්න';
+
+@override
+String get additionalNotes => 'අමතර සටහන්';
+
+@override
+String get optional => 'විකල්ප';
+
+// Customer Selection
+@override
+String get tapToSelectCustomer => 'පාරිභෝගිකයා තෝරා ගැනීමට තට්ටු කරන්න';
+
+@override
+String get selectCustomerTitle => 'පාරිභෝගිකයා තෝරන්න';
+
+@override
+String get searchByNameEmailOrReg => 'නම, ඊමේල් හෝ ලියාපදිංචි අංකයෙන් සොයන්න...';
+
+@override
+String get noMatchingCustomers => 'ගැලපෙන පාරිභෝගිකයින් නැත';
+
+// File Upload
+@override
+String get tapToSelectFile => 'ගොනුව තෝරා ගැනීමට තට්ටු කරන්න';
+
+@override
+String get pdfJpgPngSupported => 'PDF, JPG, PNG සහාය දක්වයි';
+
+@override
+String get enterAdditionalNotes => 'අමතර සටහන් ඇතුළත් කරන්න...';
+
+// Form Actions
+@override
+String get clearForm => 'පෝරමය මකන්න';
+
+// Messages - Success
+@override
+String get fileSelected => 'ගොනුව තෝරා ගන්නා ලදී';
+
+@override
+String get successTitle => 'සාර්ථකයි!';
+
+@override
+String get paymentSlipUploadedTo => 'ගෙවීම් පත්‍රිකාව උඩුගත කරන ලදී';
+
+@override
+String get folder => 'ෆෝල්ඩරය';
+
+// Messages - Errors
+@override
+String get noFileSelected => 'ගොනුවක් තෝරා ගෙන නැත';
+
+@override
+String get pleaseSelectCustomer => 'කරුණාකර පාරිභෝගිකයෙකු තෝරන්න';
+
+@override
+String get pleaseSelectPaymentSlipFile => 'කරුණාකර ගෙවීම් පත්‍රිකා ගොනුවක් තෝරන්න';
+
+@override
+String get adminNotLoggedIn => 'පරිපාලක පිවිසී නැත';
+
+@override
+String get uploadFailed => 'උඩුගත කිරීම අසාර්ථක විය';
+
+// Button Labels
+@override
+String get uploadingTo => 'උඩුගත වෙමින්';
+
+@override
+String get uploadPaymentSlipButton => 'ගෙවීම් පත්‍රිකාව උඩුගත කරන්න';
+
+@override
+String get step => 'පියවර';
+
+// Additional useful translations that might be needed
+@override
+String get uploading => 'උඩුගත වෙමින්...';
+
+@override
+String get processing => 'සකසමින්...';
+
+@override
+String get pleaseWait => 'කරුණාකර රැඳී සිටින්න';
+
+@override
+String get customerDetails => 'පාරිභෝගික විස්තර';
+
+@override
+String get fileDetails => 'ගොනු විස්තර';
+
+@override
+String get uploadComplete => 'උඩුගත කිරීම සම්පූර්ණයි';
+
+@override
+String get uploadProgress => 'උඩුගත කිරීමේ ප්‍රගතිය';
+
+@override
+String get selectFile => 'ගොනුව තෝරන්න';
+
+@override
+String get selectedFile => 'තෝරාගත් ගොනුව';
+
+@override
+String get noCustomerSelected => 'පාරිභෝගිකයෙකු තෝරා නොමැත';
+
+@override
+String get customerSelected => 'පාරිභෝගිකයා තෝරා ගන්නා ලදී';
+
+@override
+String get notes => 'සටහන්';
+
+@override
+String get uploadDetails => 'උඩුගත කිරීමේ විස්තර';
+
+@override
+String get confirmUpload => 'උඩුගත කිරීම තහවුරු කරන්න';
+
+@override
+String get uploadedSuccessfully => 'සාර්ථකව උඩුගත කරන ලදී';
+
+@override
+String get uploadedBy => 'උඩුගත කළේ';
+
+@override
+String get uploadDate => 'උඩුගත කළ දිනය';
+
+@override
+String get fileName => 'ගොනු නම';
+
+@override
+String get fileSize => 'ගොනු ප්‍රමාණය';
+
+@override
+String get fileType => 'ගොනු වර්ගය';
+
+@override
+String get viewFile => 'ගොනුව බලන්න';
+
+@override
+String get deleteFile => 'ගොනුව මකන්න';
+
+@override
+String get downloadFile => 'ගොනුව බාගන්න';
+
+@override
+String get paymentSlipDetails => 'ගෙවීම් පත්‍රිකා විස්තර';
+
+@override
+String get paymentVerified => 'ගෙවීම සත්‍යාපනය කරන ලදී';
+
+@override
+String get paymentPending => 'ගෙවීම පොරොත්තුවෙන්';
+
+@override
+String get paymentStatus => 'ගෙවීම් තත්ත්වය';
+
+@override
+String get verifiedPayment => 'සත්‍යාපිත ගෙවීම';
+
+@override
+String get allPayments => 'සියලුම ගෙවීම්';
+
+@override
+String get recentPayments => 'මෑත කාලීන ගෙවීම්';
+
+@override
+String get paymentHistory => 'ගෙවීම් ඉතිහාසය';
+
+@override
+String get totalPayments => 'මුළු ගෙවීම්';
+
+@override
+String get paymentRecord => 'ගෙවීම් වාර්තාව';
+
+@override
+String get paymentReceipt => 'ගෙවීම් රිසිට්පත';
+
+@override
+String get viewPaymentSlip => 'ගෙවීම් පත්‍රිකාව බලන්න';
+
+@override
+String get uploadAnother => 'තවත් එකක් උඩුගත කරන්න';
+
+@override
+String get backToList => 'ලැයිස්තුවට ආපසු';
+
+@override
+String get searchCustomers => 'පාරිභෝගිකයින් සොයන්න';
+
+@override
+String get filterCustomers => 'පාරිභෝගිකයින් පෙරහන් කරන්න';
+
+@override
+String get sortBy => 'අනුපිළිවෙළට සකසන්න';
+
+@override
+String get selectAll => 'සියල්ල තෝරන්න';
+
+@override
+String get deselectAll => 'සියල්ල ඉවත් කරන්න';
+
+@override
+String get refresh => 'නැවුම් කරන්න';
+
+@override
+String get refreshing => 'නැවුම් වෙමින්...';
+
+@override
+String get loadMore => 'තවත් පූරණය කරන්න';
+
+@override
+String get noMoreData => 'තවත් දත්ත නැත';
+
+@override
+String get endOfList => 'ලැයිස්තුවේ අවසානය';
+
+@override
+String get totalCustomers => 'මුළු පාරිභෝගිකයින්';
+
+@override
+String get activeCustomers => 'සක්‍රිය පාරිභෝගිකයින්';
+
+@override
+String get inactiveCustomers => 'අක්‍රිය පාරිභෝගිකයින්';
+
+@override
+String get customerInfo => 'පාරිභෝගික තොරතුරු';
+
+@override
+String get contactCustomer => 'පාරිභෝගිකයා අමතන්න';
+
+@override
+String get viewCustomerDetails => 'පාරිභෝගික විස්තර බලන්න';
+
+// Alert Page - Main
+@override
+String get systemAlert => 'පද්ධති ඇඟවීම';
+
+@override
+String get loadingAlerts => 'ඇඟවීම් පූරණය වෙමින්...';
+
+@override
+String get noAlertsFound => 'ඇඟවීම් හමු නොවීය';
+
+@override
+String get noAlertsDescription => 'ඔබ සියල්ල සම්පූර්ණ කර ඇත! දැනට නව ඇඟවීම් නැත.';
+
+@override
+String get alertDeletedSuccessfully => 'ඇඟවීම සාර්ථකව මකා දමන ලදී';
+
+// Alert Filters
+@override
+String get allAlerts => 'සියලුම ඇඟවීම්';
+
+@override
+String get criticalAlerts => 'විශේෂ';
+
+@override
+String get warningAlerts => 'අනතුරු ඇඟවීම්';
+
+@override
+String get infoAlerts => 'තොරතුරු';
+
+@override
+String get successAlerts => 'සාර්ථකත්වය';
+
+// Alert Details
+@override
+String get alertDescription => 'විස්තරය';
+
+@override
+String get noDescriptionAvailable => 'විස්තර නොමැත';
+
+@override
+String get additionalDetails => 'අමතර විස්තර';
+
+@override
+String get markAsRead => 'කියවූ ලෙස සලකුණු කරන්න';
+
+@override
+String get deleteAlert => 'ඇඟවීම මකන්න';
+
+@override
+String get deleteAlertConfirmation => 'ඔබට මෙම ඇඟවීම මකා දැමීමට අවශ්‍යද?';
+
+@override
+String get delete => 'මකන්න';
+
+@override
+String get alertMarkedAsRead => 'ඇඟවීම කියවූ ලෙස සලකුණු කරන ලදී';
+
+// Alert Types
+@override
+String get criticalAlert => 'විශේෂ ඇඟවීම';
+
+@override
+String get warningAlert => 'අනතුරු ඇඟවීම';
+
+@override
+String get infoAlert => 'තොරතුරු ඇඟවීම';
+
+@override
+String get successAlert => 'සාර්ථක ඇඟවීම';
+
+// Alert Actions
+@override
+String get viewAlert => 'ඇඟවීම බලන්න';
+
+@override
+String get dismissAlert => 'ඇඟවීම ඉවත් කරන්න';
+
+@override
+String get readAlerts => 'කියවූ ඇඟවීම්';
+
+@override
+String get unreadAlerts => 'නොකියවූ ඇඟවීම්';
+
+@override
+String get clearAllAlerts => 'සියලු ඇඟවීම් ඉවත් කරන්න';
+
+@override
+String get noUnreadAlerts => 'නොකියවූ ඇඟවීම් නැත';
+
+@override
+String get alertsCleared => 'සියලුම ඇඟවීම් ඉවත් කරන ලදී';
+
+// Swipe Actions
+@override
+String get swipeToMarkAsRead => 'කියවූ ලෙස සලකුණු කිරීමට දකුණට ස්වයිප් කරන්න';
+
+@override
+String get swipeToDelete => 'මකාදැමීමට වමට ස්වයිප් කරන්න';
+
 @override
 String customerCollectedSuccessfullyWithWeight(String customerName, double weight) {
   return '$customerName සාර්ථකව එකතු කරන ලදී (${weight}kg)';

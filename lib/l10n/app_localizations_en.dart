@@ -738,6 +738,421 @@ String get userProfile => 'User Profile';
 @override
 String get currentGPS => 'Current GPS';
 
+
+// Admin side
+
+// Admin Dashboard
+@override
+String get dashboard => 'Dashboard';
+
+@override
+String get goodMorningAdmin => 'Good Morning';
+
+@override
+String get goodAfternoonAdmin => 'Good Afternoon';
+
+@override
+String get goodEveningAdmin => 'Good Evening';
+
+@override
+String get admin => 'Admin';
+
+@override
+String get realTimeSystemOverview => 'Real-time System Overview';
+
+@override
+String get todaysActivity => 'Today\'s Activity';
+
+@override
+String get newUsers => 'New Users';
+
+@override
+String get activeAlerts => 'Active Alerts';
+
+@override
+String get alertsNeedAttention => '{count} alert(s) need attention';
+
+@override
+String get overview => 'Overview';
+
+@override
+String get totalUsers => 'Total Users';
+
+@override
+String get customers => 'Customers';
+
+@override
+String get collectors => 'Collectors';
+
+@override
+String get quickActionsTitle => 'Quick Actions';
+
+@override
+String get manageUsers => 'Manage Users';
+
+@override
+String get viewAndManageUsers => 'View and manage all users';
+
+@override
+String get uploadPaymentSlip => 'Upload Payment Slip';
+
+@override
+String get checkPaymentRecords => 'Check payment records';
+
+@override
+String get systemAlerts => 'System Alerts';
+
+@override
+String get monitorSystemNotifications => 'Monitor system notifications';
+
+@override
+String get logoutTitle => 'Logout';
+
+@override
+String get logoutConfirmation => 'Are you sure you want to log out?';
+
+@override
+String get logoutButton => 'Logout';
+
+@override
+String get activeAlertsTitle => 'Active Alerts';
+
+
+// Manage Users Page
+@override
+String get userManagement => 'User Management';
+
+@override
+String get refreshUsers => 'Refresh Users';
+
+@override
+String get loadingUsers => 'Loading users...';
+
+@override
+String get userNotAuthenticated => 'User not authenticated';
+
+@override
+String get userDocumentNotFound => 'User document not found';
+
+@override
+String get accessDenied => 'Access denied. Admin privileges required.';
+
+@override
+String get adminAccessRequired => 'Admin access required';
+
+@override
+String get errorCheckingPermissions => 'Error checking permissions';
+
+@override
+String get errorLoadingUsers => 'Error loading users';
+
+@override
+String customersCount(int count) => 'Customers ($count)';
+
+@override
+String collectorsCount(int count) => 'Collectors ($count)';
+
+@override
+String get accessError => 'Access Error';
+
+@override
+String get tryAgain => 'Try Again';
+
+@override
+String get noCustomersFound => 'No customers found';
+
+@override
+String get noCollectorsFound => 'No collectors found';
+
+@override
+String get customersWillAppear => 'Customers will appear here once they register';
+
+@override
+String get collectorsWillAppear => 'Collectors will appear here once they register';
+
+@override
+String get unknownUser => 'Unknown User';
+
+@override
+String get noEmail => 'No email';
+
+@override
+String get reg => 'Reg';
+
+@override
+String get viewDetailsAction => 'View Details';
+
+@override
+String get editUser => 'Edit User';
+
+@override
+String get deleteUser => 'Delete User';
+
+@override
+String get invalidDate => 'Invalid date';
+
+@override
+String get personalInformationTitle => 'Personal Information';
+
+@override
+String get fullNameLabel => 'Full Name';
+
+@override
+String get emailAddressLabel => 'Email Address';
+
+@override
+String get registrationNoLabel => 'Registration No.';
+
+@override
+String get userRole => 'User Role';
+
+@override
+String get accountInformation => 'Account Information';
+
+@override
+String get joinedDate => 'Joined Date';
+
+@override
+String get lastUpdated => 'Last Updated';
+
+@override
+String get done => 'Done';
+
+@override
+String get editUserTitle => 'Edit User';
+
+@override
+String get fullNameField => 'Full Name';
+
+@override
+String get emailAddressField => 'Email Address';
+
+@override
+String get registrationNumberField => 'Registration Number';
+
+@override
+String get userRoleField => 'User Role';
+
+@override
+String get updateUser => 'Update User';
+
+@override
+String get nameAndEmailRequired => 'Name and Email are required';
+
+@override
+String get userUpdatedSuccessfully => 'User updated successfully';
+
+@override
+String get errorUpdatingUser => 'Error updating user';
+
+@override
+String get deleteUserTitle => 'Delete User';
+
+@override
+String get cannotDeleteOwnAccount => 'Cannot delete your own admin account';
+
+@override
+String deleteUserConfirmation(String userName) => 
+    'Are you sure you want to delete "$userName"? This action cannot be undone and will permanently remove all user data.';
+
+@override
+String get userDeletedSuccessfully => 'User deleted successfully';
+
+@override
+String get errorDeletingUser => 'Error deleting user';
+
+@override
+String get payment => 'Payment';
+
+
+@override
+String get users => 'Users';
+
+@override
+String get settings => 'Settings';
+
+
+// Payment Slip Page
+@override
+String get uploadPaymentSlipTitle => 'Upload Payment Slip';
+
+@override
+String get paymentSlipUpload => 'Payment Slip Upload';
+
+@override
+String get uploadPaymentSlipsForCustomers => 'Upload payment slips for customers';
+
+@override
+String get selectCustomerStep => 'Select Customer';
+
+@override
+String get uploadPaymentSlipStep => 'Upload Payment Slip';
+
+@override
+String get additionalNotes => 'Additional Notes';
+
+@override
+String get optional => 'Optional';
+
+@override
+String get tapToSelectCustomer => 'Tap to select customer';
+
+@override
+String get selectCustomerTitle => 'Select Customer';
+
+@override
+String get searchByNameEmailOrReg => 'Search by name, email, or reg number...';
+
+@override
+String get noMatchingCustomers => 'No matching customers';
+
+@override
+String get tapToSelectFile => 'Tap to select file';
+
+@override
+String get pdfJpgPngSupported => 'PDF, JPG, PNG supported';
+
+@override
+String get enterAdditionalNotes => 'Enter any additional notes...';
+
+@override
+String get clearForm => 'Clear form';
+
+@override
+String get fileSelected => 'File selected';
+
+@override
+String get noFileSelected => 'No file selected';
+
+@override
+String get pleaseSelectCustomer => 'Please select a customer';
+
+@override
+String get pleaseSelectPaymentSlipFile => 'Please select a payment slip file';
+
+@override
+String get adminNotLoggedIn => 'Admin not logged in';
+
+@override
+String get uploadFailed => 'Upload failed';
+
+@override
+String get successTitle => 'Success!';
+
+@override
+String get paymentSlipUploadedTo => 'Payment slip uploaded to';
+
+@override
+String get folder => 'folder';
+
+@override
+String get uploadingTo => 'Uploading to';
+
+@override
+String get uploadPaymentSlipButton => 'Upload Payment Slip';
+
+@override
+String get step => 'Step';
+
+// Alert Page - Main
+@override
+String get systemAlert => 'System Alert';
+
+@override
+String get loadingAlerts => 'Loading alerts...';
+
+@override
+String get noAlertsFound => 'No Alerts Found';
+
+@override
+String get noAlertsDescription => 'You\'re all caught up! No new alerts at the moment.';
+
+@override
+String get alertDeletedSuccessfully => 'Alert deleted successfully';
+
+// Alert Filters
+@override
+String get allAlerts => 'All Alerts';
+
+@override
+String get criticalAlerts => 'Critical';
+
+@override
+String get warningAlerts => 'Warnings';
+
+@override
+String get infoAlerts => 'Info';
+
+@override
+String get successAlerts => 'Success';
+
+// Alert Details
+@override
+String get alertDescription => 'Description';
+
+@override
+String get noDescriptionAvailable => 'No description available';
+
+@override
+String get additionalDetails => 'Additional Details';
+
+@override
+String get markAsRead => 'Mark as Read';
+
+@override
+String get deleteAlert => 'Delete Alert';
+
+@override
+String get deleteAlertConfirmation => 'Are you sure you want to delete this alert?';
+
+@override
+String get delete => 'Delete';
+
+@override
+String get alertMarkedAsRead => 'Alert marked as read';
+
+// Alert Types
+@override
+String get criticalAlert => 'Critical Alert';
+
+@override
+String get warningAlert => 'Warning Alert';
+
+@override
+String get infoAlert => 'Information Alert';
+
+@override
+String get successAlert => 'Success Alert';
+
+// Alert Actions
+@override
+String get viewAlert => 'View Alert';
+
+@override
+String get dismissAlert => 'Dismiss Alert';
+
+@override
+String get readAlerts => 'Read Alerts';
+
+@override
+String get unreadAlerts => 'Unread Alerts';
+
+@override
+String get clearAllAlerts => 'Clear All Alerts';
+
+@override
+String get noUnreadAlerts => 'No unread alerts';
+
+@override
+String get alertsCleared => 'All alerts cleared';
+
+// Swipe Actions
+@override
+String get swipeToMarkAsRead => 'Swipe right to mark as read';
+
+@override
+String get swipeToDelete => 'Swipe left to delete';
+
 @override
 String customerCollectedSuccessfullyWithWeight(String customerName, double weight) {
   return '$customerName collected successfully (${weight}kg)';

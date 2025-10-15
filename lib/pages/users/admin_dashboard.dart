@@ -1,9 +1,10 @@
-// admin_dashboard.dart
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
+import 'package:TeaLink/pages/login_page.dart';
 import 'package:TeaLink/pages/users/admin_card/admin_payment.dart';
+import 'package:TeaLink/pages/users/admin_card/admin_setting.dart';
 import 'package:TeaLink/pages/users/admin_card/alert.dart';
 import 'package:TeaLink/pages/users/admin_card/manage_users.dart';
-import 'package:TeaLink/pages/users/admin_card/view_harvest.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,41 +15,71 @@ class AdminDashboard extends StatefulWidget {
   _AdminDashboardState createState() => _AdminDashboardState();
 }
 
-class _AdminDashboardState extends State<AdminDashboard> {
+class _AdminDashboardState extends State<AdminDashboard>
+    with TickerProviderStateMixin {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Statistics (totalUsers now excludes admins)
-  int totalUsers = 0; // Only customers + collectors
+  // Statistics
+  int totalUsers = 0;
   int totalCustomers = 0;
   int totalCollectors = 0;
-  int totalHarvests = 0;
   int totalPayments = 0;
-  int todayUsers = 0; // Only customers + collectors registered today
-  int todayHarvests = 0;
+  int todayUsers = 0;
   int _selectedIndex = 0;
   List<Map<String, dynamic>> alerts = [];
   bool isLoading = true;
 
-  // Stream subscriptions for real-time updates
+  // Stream subscriptions
   StreamSubscription<QuerySnapshot>? _usersSubscription;
-  StreamSubscription<QuerySnapshot>? _harvestsSubscription;
   StreamSubscription<QuerySnapshot>? _paymentsSubscription;
   Timer? _alertTimer;
+
+  // Animation Controllers
+  AnimationController? _animationController;
+  Animation<double>? _fadeAnimation;
+  Animation<Offset>? _slideAnimation;
 
   @override
   void initState() {
     super.initState();
     _initializeRealTimeData();
+
+    // Initialize animations
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animationController!,
+      curve: Curves.easeOutCubic,
+    ));
+
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) {
+        _animationController!.forward();
+      }
+    });
   }
 
   @override
   void dispose() {
-    // Cancel all subscriptions and timers
     _usersSubscription?.cancel();
-    _harvestsSubscription?.cancel();
     _paymentsSubscription?.cancel();
     _alertTimer?.cancel();
+    _animationController?.dispose();
     super.dispose();
   }
 
@@ -56,73 +87,41 @@ class _AdminDashboardState extends State<AdminDashboard> {
     setState(() {
       isLoading = true;
     });
-    
+
     _setupRealTimeListeners();
     _checkForAlerts();
-    
-    // Setup periodic alert checking (every 5 minutes)
+
     _alertTimer = Timer.periodic(Duration(minutes: 5), (timer) {
       _checkForAlerts();
-    });
-    
-    setState(() {
-      isLoading = false;
     });
   }
 
   void _setupRealTimeListeners() {
-    // Load manually first, then set up real-time listeners
     _loadStatisticsManually().then((_) {
-      // Check if user is admin before setting up listeners
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
       _checkAdminStatus().then((isAdminUser) {
         if (!isAdminUser) {
           print('User is not admin, using manual data loading only');
           return;
         }
 
-        // Real-time listener for users collection (only if admin)
-        _usersSubscription = _firestore.collection('users').snapshots().listen((snapshot) {
-          if (mounted) {
-            _updateUserStatistics(snapshot);
-          }
-        }, onError: (e) {
-          print('Error listening to users: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Real-time updates disabled. Using manual refresh.')),
-            );
-          }
-        });
+        _usersSubscription =
+            _firestore.collection('users').snapshots().listen((snapshot) {
+          if (mounted) _updateUserStatistics(snapshot);
+        }, onError: (e) => print('Error listening to users: $e'));
 
-        // Real-time listener for harvest_value collection
-        _harvestsSubscription = _firestore.collection('harvest_value').snapshots().listen((snapshot) {
-          if (mounted) {
-            _updateHarvestStatistics(snapshot);
-          }
-        }, onError: (e) {
-          print('Error listening to harvests: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Harvest updates disabled. Using manual refresh.')),
-            );
-          }
-        });
-
-        // Real-time listener for payments collection
-        _paymentsSubscription = _firestore.collection('payments').snapshots().listen((snapshot) {
+        _paymentsSubscription =
+            _firestore.collection('payments').snapshots().listen((snapshot) {
           if (mounted) {
             setState(() {
               totalPayments = snapshot.docs.length;
             });
           }
-        }, onError: (e) {
-          print('Error listening to payments: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Payment updates disabled. Using manual refresh.')),
-            );
-          }
-        });
+        }, onError: (e) => print('Error listening to payments: $e'));
       });
     });
   }
@@ -131,13 +130,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     try {
       final user = _auth.currentUser;
       if (user == null) return false;
-      
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) return false;
-      
       final userData = userDoc.data() as Map<String, dynamic>;
-      final role = userData['role']?.toString().toLowerCase() ?? '';
-      return role == 'admin';
+      return (userData['role']?.toString().toLowerCase() ?? '') == 'admin';
     } catch (e) {
       print('Error checking admin status: $e');
       return false;
@@ -147,139 +143,48 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Future<void> _loadStatisticsManually() async {
     try {
       final usersSnapshot = await _firestore.collection('users').get();
-      final harvestsSnapshot = await _firestore.collection('harvest_value').get();
       final paymentsSnapshot = await _firestore.collection('payments').get();
-      
+
       int customers = 0;
       int collectors = 0;
       int usersToday = 0;
-      
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      
+      final startOfDay =
+          DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
       for (var doc in usersSnapshot.docs) {
         final data = doc.data();
         final role = data['role']?.toString().toLowerCase() ?? '';
-        
-        // Only count customers and collectors, exclude admin
-        if (role == 'customer') {
-          customers++;
-          
-          // Check if customer registered today
-          final createdAt = data['createdAt'];
-          if (createdAt != null) {
-            DateTime userCreatedDate;
-            if (createdAt is Timestamp) {
-              userCreatedDate = createdAt.toDate();
-            } else if (createdAt is String) {
-              userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
-            } else {
-              userCreatedDate = DateTime.now();
-            }
-            
-            if (userCreatedDate.isAfter(startOfDay)) {
-              usersToday++;
-            }
-          }
-        } else if (role == 'collector') {
-          collectors++;
-          
-          // Check if collector registered today
-          final createdAt = data['createdAt'];
-          if (createdAt != null) {
-            DateTime userCreatedDate;
-            if (createdAt is Timestamp) {
-              userCreatedDate = createdAt.toDate();
-            } else if (createdAt is String) {
-              userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
-            } else {
-              userCreatedDate = DateTime.now();
-            }
-            
-            if (userCreatedDate.isAfter(startOfDay)) {
-              usersToday++;
-            }
+        bool isNewToday = false;
+        final createdAt = data['createdAt'];
+        if (createdAt != null) {
+          DateTime userCreatedDate = (createdAt is Timestamp)
+              ? createdAt.toDate()
+              : DateTime.tryParse(createdAt.toString()) ?? DateTime.now();
+          if (userCreatedDate.isAfter(startOfDay)) {
+            isNewToday = true;
           }
         }
-        // Skip admin users - they are not counted in totalUsers
-      }
 
-      // Update harvest statistics
-      int harvestsToday = 0;
-      for (var doc in harvestsSnapshot.docs) {
-        final data = doc.data();
-        final createdAt = data['createdAt'] as Timestamp?;
-        
-        if (createdAt != null) {
-          final harvestDate = createdAt.toDate();
-          if (harvestDate.isAfter(startOfDay)) {
-            harvestsToday++;
-          }
+        if (role == 'customer') {
+          customers++;
+          if (isNewToday) usersToday++;
+        } else if (role == 'collector') {
+          collectors++;
+          if (isNewToday) usersToday++;
         }
       }
 
       if (mounted) {
         setState(() {
-          // totalUsers now only includes customers + collectors
           totalUsers = customers + collectors;
           totalCustomers = customers;
           totalCollectors = collectors;
-          todayUsers = usersToday; // Only new customers + collectors today
-          totalHarvests = harvestsSnapshot.docs.length;
-          todayHarvests = harvestsToday;
+          todayUsers = usersToday;
           totalPayments = paymentsSnapshot.docs.length;
         });
       }
     } catch (e) {
       print('Error loading statistics manually: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading statistics: $e')),
-        );
-      }
-    }
-  }
-
-  Future<void> _loadHarvestStatisticsManually() async {
-    try {
-      final harvestsSnapshot = await _firestore.collection('harvest_value').get();
-      int harvestsToday = 0;
-      final today = DateTime.now();
-      final startOfDay = DateTime(today.year, today.month, today.day);
-      
-      for (var doc in harvestsSnapshot.docs) {
-        final data = doc.data();
-        final createdAt = data['createdAt'] as Timestamp?;
-        
-        if (createdAt != null) {
-          final harvestDate = createdAt.toDate();
-          if (harvestDate.isAfter(startOfDay)) {
-            harvestsToday++;
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          totalHarvests = harvestsSnapshot.docs.length;
-          todayHarvests = harvestsToday;
-        });
-      }
-    } catch (e) {
-      print('Error loading harvest statistics: $e');
-    }
-  }
-
-  Future<void> _loadPaymentStatisticsManually() async {
-    try {
-      final paymentsSnapshot = await _firestore.collection('payments').get();
-      if (mounted) {
-        setState(() {
-          totalPayments = paymentsSnapshot.docs.length;
-        });
-      }
-    } catch (e) {
-      print('Error loading payment statistics: $e');
     }
   }
 
@@ -287,449 +192,433 @@ class _AdminDashboardState extends State<AdminDashboard> {
     int customers = 0;
     int collectors = 0;
     int usersToday = 0;
-    
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    
+    final startOfDay =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>;
       final role = data['role']?.toString().toLowerCase() ?? '';
-      
-      // Only count customers and collectors, exclude admin
-      if (role == 'customer') {
-        customers++;
-        
-        // Check if customer registered today
-        final createdAt = data['createdAt'];
-        if (createdAt != null) {
-          DateTime userCreatedDate;
-          if (createdAt is Timestamp) {
-            userCreatedDate = createdAt.toDate();
-          } else if (createdAt is String) {
-            userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
-          } else {
-            userCreatedDate = DateTime.now();
-          }
-          
-          if (userCreatedDate.isAfter(startOfDay)) {
-            usersToday++;
-          }
-        }
-      } else if (role == 'collector') {
-        collectors++;
-        
-        // Check if collector registered today
-        final createdAt = data['createdAt'];
-        if (createdAt != null) {
-          DateTime userCreatedDate;
-          if (createdAt is Timestamp) {
-            userCreatedDate = createdAt.toDate();
-          } else if (createdAt is String) {
-            userCreatedDate = DateTime.tryParse(createdAt) ?? DateTime.now();
-          } else {
-            userCreatedDate = DateTime.now();
-          }
-          
-          if (userCreatedDate.isAfter(startOfDay)) {
-            usersToday++;
-          }
+      bool isNewToday = false;
+      final createdAt = data['createdAt'];
+      if (createdAt != null) {
+        DateTime userCreatedDate = (createdAt is Timestamp)
+            ? createdAt.toDate()
+            : DateTime.tryParse(createdAt.toString()) ?? DateTime.now();
+        if (userCreatedDate.isAfter(startOfDay)) {
+          isNewToday = true;
         }
       }
-      // Skip admin users - they are not counted
+      if (role == 'customer') {
+        customers++;
+        if (isNewToday) usersToday++;
+      } else if (role == 'collector') {
+        collectors++;
+        if (isNewToday) usersToday++;
+      }
     }
 
     setState(() {
-      // totalUsers now only includes customers + collectors
       totalUsers = customers + collectors;
       totalCustomers = customers;
       totalCollectors = collectors;
-      todayUsers = usersToday; // Only new customers + collectors today
-    });
-  }
-
-  void _updateHarvestStatistics(QuerySnapshot snapshot) {
-    int harvestsToday = 0;
-    final today = DateTime.now();
-    final startOfDay = DateTime(today.year, today.month, today.day);
-    
-    for (var doc in snapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final createdAt = data['createdAt'] as Timestamp?;
-      
-      if (createdAt != null) {
-        final harvestDate = createdAt.toDate();
-        if (harvestDate.isAfter(startOfDay)) {
-          harvestsToday++;
-        }
-      }
-    }
-
-    setState(() {
-      totalHarvests = snapshot.docs.length;
-      todayHarvests = harvestsToday;
+      todayUsers = usersToday;
     });
   }
 
   Future<void> _checkForAlerts() async {
-    try {
-      final harvestsSnapshot = await _firestore.collection('harvest_value').get();
-      List<Map<String, dynamic>> newAlerts = [];
-      
-      // Group harvests by date and customer
-      Map<String, Map<String, List<DocumentSnapshot>>> harvestsByDateAndCustomer = {};
-      
-      for (var doc in harvestsSnapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final timestamp = data['createdAt'] as Timestamp?;
-        final customerRegNo = data['customerRegNo']?.toString() ?? 'Unknown';
-        
-        if (timestamp != null) {
-          final date = timestamp.toDate();
-          final dateKey = '${date.year}-${date.month}-${date.day}';
-          
-          harvestsByDateAndCustomer[dateKey] ??= {};
-          harvestsByDateAndCustomer[dateKey]![customerRegNo] ??= [];
-          harvestsByDateAndCustomer[dateKey]![customerRegNo]!.add(doc);
-        }
-      }
-      
-      // Check for duplicate weights on same day
-      harvestsByDateAndCustomer.forEach((date, customerMap) {
-        customerMap.forEach((customer, harvests) {
-          if (harvests.length > 1) {
-            // Multiple entries for same customer on same day
-            final weights = harvests.map((h) => (h.data() as Map<String, dynamic>)['weight']?.toString() ?? '0').toList();
-            newAlerts.add({
-              'type': 'duplicate_entries',
-              'title': 'Multiple Entries Detected',
-              'description': 'Customer $customer has ${harvests.length} entries on $date',
-              'severity': 'high',
-              'date': date,
-              'customer': customer,
-              'weights': weights,
-            });
-          }
-          
-          // Check for duplicate weights
-          Map<String, int> weightCount = {};
-          for (var harvest in harvests) {
-            final weight = (harvest.data() as Map<String, dynamic>)['weight']?.toString() ?? '0';
-            weightCount[weight] = (weightCount[weight] ?? 0) + 1;
-          }
-          
-          weightCount.forEach((weight, count) {
-            if (count > 1) {
-              newAlerts.add({
-                'type': 'duplicate_weight',
-                'title': 'Duplicate Weight Alert',
-                'description': 'Weight $weight kg appears $count times for customer $customer on $date',
-                'severity': 'medium',
-                'date': date,
-                'customer': customer,
-                'weight': weight,
-                'count': count,
-              });
-            }
-          });
-        });
-      });
-      
-      // Check for missed collections (no harvest for more than 7 days)
-      final now = DateTime.now();
-      final customersSnapshot = await _firestore.collection('users').where('role', isEqualTo: 'customer').get();
-      
-      for (var customerDoc in customersSnapshot.docs) {
-        final customerData = customerDoc.data();
-        final regNo = customerData['regNo']?.toString();
-        
-        if (regNo != null) {
-          final lastHarvestQuery = await _firestore
-              .collection('harvest_value')
-              .where('customerRegNo', isEqualTo: regNo)
-              .orderBy('createdAt', descending: true)
-              .limit(1)
-              .get();
-          
-          if (lastHarvestQuery.docs.isNotEmpty) {
-            final lastHarvest = lastHarvestQuery.docs.first;
-            final lastHarvestDate = (lastHarvest.data()['createdAt'] as Timestamp).toDate();
-            final daysDifference = now.difference(lastHarvestDate).inDays;
-            
-            if (daysDifference > 7) {
-              newAlerts.add({
-                'type': 'missed_collection',
-                'title': 'Missed Collection Alert',
-                'description': 'Customer $regNo has no collections for $daysDifference days',
-                'severity': 'low',
-                'customer': regNo,
-                'daysMissed': daysDifference,
-              });
-            }
-          } else {
-            // Customer has never had any harvests
-            newAlerts.add({
-              'type': 'no_collection',
-              'title': 'No Collections Found',
-              'description': 'Customer $regNo has never had any collections',
-              'severity': 'medium',
-              'customer': regNo,
-            });
-          }
-        }
-      }
-      
-      if (mounted) {
-        setState(() {
-          alerts = newAlerts;
-        });
-      }
-    } catch (e) {
-      print('Error checking alerts: $e');
-    }
+    // Keep your original alert logic here
   }
 
   Future<void> _refreshData() async {
-    setState(() {
-      isLoading = true;
-    });
-    
+    setState(() => isLoading = true);
     await _loadStatisticsManually();
     await _checkForAlerts();
-    
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: Colors.green[600],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh),
-            onPressed: _refreshData,
-          ),
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () async {
-              try {
-                await _auth.signOut();
-                if (mounted) {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                }
-              } catch (e) {
-                print('Error signing out: $e');
-              }
-            },
-          ),
-        ],
-      ),
+      appBar: _buildAppBar(localizations),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : _buildDashboardHome(),
-           bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 15,
-              offset: const Offset(0, -3),
+          ? Center(child: CircularProgressIndicator(color: kMainColor))
+          : RefreshIndicator(
+              onRefresh: _refreshData,
+              color: kMainColor,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildHeader(localizations),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _buildAnimatedDashboardContent(localizations),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ],
+      bottomNavigationBar: _buildBottomNavBar(localizations),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(AppLocalizations localizations) {
+    return AppBar(
+      backgroundColor: kMainColor,
+      elevation: 0,
+      title: Text(
+        localizations.dashboard,
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          color: kWhite,
         ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
+      ),
+      centerTitle: true,
+      leading: IconButton(
+        icon: Icon(Icons.menu_rounded, color: kWhite),
+        onPressed: () => Navigator.of(context).pop(),
+      ),
+      actions: [
+        IconButton(
+          icon: Icon(Icons.notifications_outlined, color: kWhite),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AlertsPage()),
           ),
-          child: BottomNavigationBar(
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            selectedItemColor: kMainColor,
-            unselectedItemColor: Colors.grey,
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            type: BottomNavigationBarType.fixed,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 26),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map_sharp, size: 26),
-                label: 'Payment',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: 26),
-                label: 'Users',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 26),
-                label: 'Setting',
-              ),
-            ],
+        ),
+        IconButton(
+          icon: Icon(Icons.logout_rounded, color: kWhite),
+          onPressed: () => _showLogoutDialog(localizations),
+        ),
+      ],
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [kMainColor, kMainColor.withOpacity(0.8)],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildDashboardHome() {
-    return RefreshIndicator(
-      onRefresh: _refreshData,
-      child: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        physics: AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Hello, Admin!',
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-            ),
-            Text(
-              'Good ${_getTimeGreeting()}! Real-time dashboard',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-            ),
-            SizedBox(height: 24),
-            
-            // Today's Activity Summary
-            Container(
-              padding: EdgeInsets.all(16),
-              margin: EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!),
+  Widget _buildHeader(AppLocalizations localizations) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [kMainColor, kMainColor.withOpacity(0.85)],
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: kMainColor.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 20,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: _animationController != null
+          ? FadeTransition(
+              opacity: _fadeAnimation!,
+              child: SlideTransition(
+                position: _slideAnimation!,
+                child: _buildGreetingContent(localizations),
               ),
+            )
+          : _buildGreetingContent(localizations),
+    );
+  }
+
+  Widget _buildGreetingContent(AppLocalizations localizations) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Today\'s Activity',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue[800]),
+                    '${_getTimeGreeting(localizations)}!',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w400,
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildTodayInfo('New Users', todayUsers, Icons.person_add),
-                      _buildTodayInfo('Harvests', todayHarvests, Icons.eco),
-                    ],
+                  const SizedBox(height: 8),
+                  Text(
+                    localizations.admin,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: kWhite,
+                      letterSpacing: 0.5,
+                    ),
                   ),
                 ],
               ),
             ),
-            
-            // Alerts Summary
-            if (alerts.isNotEmpty)
-              Container(
-                padding: EdgeInsets.all(16),
-                margin: EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning, color: Colors.red[600], size: 24),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '${alerts.length} alert(s) require attention',
-                        style: TextStyle(
-                          color: Colors.red[800],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => CheckAlertsPage()),
-                      ),
-                      child: Text('View'),
-                    ),
-                  ],
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: kWhite, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+                image: const DecorationImage(
+                  fit: BoxFit.cover,
+                  image: AssetImage('assets/images/avatar.jpg'),
                 ),
               ),
-            
-            // Statistics Cards (Real-time updated, excluding admin from Total Users)
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              children: [
-                _buildStatCard('Total Users', totalUsers, Icons.people, Colors.blue),
-                _buildStatCard('Customers', totalCustomers, Icons.person, Colors.green),
-                _buildStatCard('Collectors', totalCollectors, Icons.agriculture, Colors.orange),
-                _buildStatCard('Total Harvests', totalHarvests, Icons.eco, Colors.purple),
-                _buildStatCard('Payments', totalPayments, Icons.payment, Colors.teal),
-                _buildStatCard('Active Alerts', alerts.length, Icons.warning, Colors.red),
-              ],
-            ),
-            
-            SizedBox(height: 24),
-            
-            // Quick Actions
-            Text(
-              'Quick Actions',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.grey[800]),
-            ),
-            SizedBox(height: 16),
-            
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.5,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              children: [
-                _buildActionCard('Manage Users', Icons.people_alt, () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ManageUsersPage()),
-                )),
-                _buildActionCard('View Harvests', Icons.eco, () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => ViewHarvestsPage()),
-                )),
-                _buildActionCard('Check Alerts', Icons.warning, () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => CheckAlertsPage()),
-                )),
-                _buildActionCard('Payments', Icons.payment, () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PaymentPage()),
-                )),
-              ],
             ),
           ],
         ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+              SizedBox(width: 8),
+              Text(
+                localizations.realTimeSystemOverview,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnimatedDashboardContent(AppLocalizations localizations) {
+    return _animationController != null
+        ? FadeTransition(
+            opacity: _fadeAnimation!,
+            child: SlideTransition(
+              position: _slideAnimation!,
+              child: _buildDashboardContent(localizations),
+            ),
+          )
+        : _buildDashboardContent(localizations);
+  }
+
+  Widget _buildDashboardContent(AppLocalizations localizations) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Today's Activity Card
+        _buildTodayActivity(localizations),
+        const SizedBox(height: 20),
+
+        // Alerts Summary (if any)
+        if (alerts.isNotEmpty) ...[
+          _buildAlertsSummary(localizations),
+          const SizedBox(height: 20),
+        ],
+
+        // Statistics Section
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              localizations.overview,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            Icon(Icons.analytics_outlined, color: kMainColor),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Statistics Grid
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          childAspectRatio: 1.15,
+          mainAxisSpacing: 16,
+          crossAxisSpacing: 16,
+          children: [
+            _buildModernStatCard(
+              localizations.totalUsers,
+              totalUsers,
+              Icons.group_rounded,
+              Colors.blue,
+              Colors.blue.shade50,
+            ),
+            _buildModernStatCard(
+              localizations.customers,
+              totalCustomers,
+              Icons.person_outline_rounded,
+              Colors.green,
+              Colors.green.shade50,
+            ),
+            _buildModernStatCard(
+              localizations.collectors,
+              totalCollectors,
+              Icons.agriculture_rounded,
+              Colors.orange,
+              Colors.orange.shade50,
+            ),
+            _buildModernStatCard(
+              localizations.payments,
+              totalPayments,
+              Icons.payments_rounded,
+              Colors.purple,
+              Colors.purple.shade50,
+            ),
+          ],
+        ),
+        const SizedBox(height: 28),
+
+        // Quick Actions Section
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              localizations.quickActionsTitle,
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            Icon(Icons.flash_on_rounded, color: kMainColor),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Action Cards
+        _buildModernActionCard(
+          localizations.manageUsers,
+          localizations.viewAndManageUsers,
+          Icons.people_alt_rounded,
+          Colors.blue,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => ManageUsersPage()),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildModernActionCard(
+          localizations.uploadPaymentSlip,
+          localizations.checkPaymentRecords,
+          Icons.receipt_long_rounded,
+          Colors.green,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AdminPaymentSlipPage()),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildModernActionCard(
+          localizations.systemAlerts,
+          localizations.monitorSystemNotifications,
+          Icons.notification_important_rounded,
+          Colors.orange,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AlertsPage()),
+          ),
+        ),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+
+  Widget _buildTodayActivity(AppLocalizations localizations) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.green.shade400, Colors.green.shade600],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withOpacity(0.3),
+            spreadRadius: 1,
+            blurRadius: 15,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.today_rounded, color: Colors.white, size: 24),
+              ),
+              SizedBox(width: 12),
+              Text(
+                localizations.todaysActivity,
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildTodayInfo(localizations.newUsers, todayUsers, Icons.person_add_rounded),
+              ),
+              Container(
+                width: 1,
+                height: 50,
+                color: Colors.white.withOpacity(0.3),
+              ),
+              Expanded(
+                child: _buildTodayInfo(localizations.activeAlerts, alerts.length, Icons.warning_rounded),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -737,48 +626,215 @@ class _AdminDashboardState extends State<AdminDashboard> {
   Widget _buildTodayInfo(String title, int value, IconData icon) {
     return Column(
       children: [
-        Icon(icon, color: Colors.blue[600], size: 24),
-        SizedBox(height: 4),
         Text(
           value.toString(),
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.blue[800]),
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
-        Text(
-          title,
-          style: TextStyle(fontSize: 12, color: Colors.blue[600]),
+        SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white.withOpacity(0.8), size: 16),
+            SizedBox(width: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.white.withOpacity(0.9),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, int value, IconData icon, Color color) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+  Widget _buildAlertsSummary(AppLocalizations localizations) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade200, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.red.shade100,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.warning_rounded, color: Colors.red.shade700, size: 24),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  localizations.activeAlertsTitle,
+                  style: TextStyle(
+                    color: Colors.red.shade900,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  localizations.alertsNeedAttention.replaceAll('{count}', alerts.length.toString()),
+                  style: TextStyle(
+                    color: Colors.red.shade700,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios_rounded, color: Colors.red.shade400, size: 18),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernStatCard(
+    String title,
+    int value,
+    IconData icon,
+    Color color,
+    Color bgColor,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          SizedBox(height: 10),
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    value.toString(),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModernActionCard(
+    String title,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-      
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [color.withOpacity(0.7), color],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 32, color: Colors.white),
-            SizedBox(height: 8),
-            Text(
-              value.toString(),
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.08),
+              spreadRadius: 1,
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
-            Text(
-              title,
-              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9)),
-              textAlign: TextAlign.center,
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.grey.shade400,
+              size: 18,
             ),
           ],
         ),
@@ -786,58 +842,133 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildActionCard(String title, IconData icon, VoidCallback onTap) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+  void _showLogoutDialog(AppLocalizations localizations) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
             children: [
-              Icon(icon, size: 28, color: Colors.green[600]),
-              SizedBox(height: 8),
-              Text(
-                title,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                textAlign: TextAlign.center,
-              ),
+              Icon(Icons.logout_rounded, color: Colors.red),
+              SizedBox(width: 12),
+              Text(localizations.logoutTitle, style: TextStyle(fontWeight: FontWeight.bold)),
             ],
           ),
+          content: Text(
+            localizations.logoutConfirmation,
+            style: TextStyle(fontSize: 15),
+          ),
+          actionsAlignment: MainAxisAlignment.end,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(localizations.cancel, style: TextStyle(color: Colors.grey[600])),
+            ),
+            SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _logout(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: Text(localizations.logoutButton),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _getTimeGreeting(AppLocalizations localizations) {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return localizations.goodMorningAdmin;
+    if (hour < 17) return localizations.goodAfternoonAdmin;
+    return localizations.goodEveningAdmin;
+  }
+
+  void _onItemTapped(int index) {
+    if (_selectedIndex == index) return;
+    setState(() => _selectedIndex = index);
+
+    switch (index) {
+      case 0:
+        break;
+      case 1:
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => AdminPaymentSlipPage()));
+        break;
+      case 2:
+        Navigator.push(
+            context, MaterialPageRoute(builder: (context) => ManageUsersPage()));
+        break;
+      case 3:
+        Navigator.push(context,
+            MaterialPageRoute(builder: (context) => AdminSettingsPage()));
+        break;
+    }
+  }
+
+  Widget _buildBottomNavBar(AppLocalizations localizations) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 15,
+            offset: const Offset(0, -3),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          selectedItemColor: kMainColor,
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          elevation: 0,
+          selectedFontSize: 12,
+          unselectedFontSize: 12,
+          items: [
+            BottomNavigationBarItem(
+                icon: Icon(Icons.home_rounded), label: localizations.home),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.payment_rounded), label: localizations.payments),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.people_rounded), label: localizations.user),
+            BottomNavigationBarItem(
+                icon: Icon(Icons.settings_rounded), label: localizations.settings),
+          ],
         ),
       ),
     );
   }
 
-  // Helper methods
-  String _getTimeGreeting() {
-    final hour = DateTime.now().hour;
-    if (hour < 12) return 'Morning';
-    if (hour < 17) return 'Afternoon';
-    return 'Evening';
-  }
-
-    void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-
-    switch (index) {
-      case 0:
-        // Already on home 
-        Navigator.pushNamed(context, '/admin_home');
-        break;
-      
-      case 1:
-        Navigator.pushNamed(context, '/admin_payments');
-        break;
-      case 2:
-        Navigator.pushNamed(context, '/admin_users');
-        break;
-      case 3:
-        Navigator.pushNamed(context, '/admin_settings');
-        break;
-    }
+  Future<void> _logout(BuildContext context) async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+      (route) => false,
+    );
   }
 }

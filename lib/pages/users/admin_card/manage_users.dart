@@ -1,8 +1,10 @@
-// manage_users_page.dart
+// manage_users_page.dart - Fixed localized version
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 
 class ManageUsersPage extends StatefulWidget {
   @override
@@ -21,7 +23,7 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
   
   late TabController _tabController;
   int _currentTabIndex = 0;
-   int _selectedIndex = 2;
+  int _selectedIndex = 2;
 
   @override
   void initState() {
@@ -32,7 +34,10 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
         _currentTabIndex = _tabController.index;
       });
     });
-    _checkAdminAndLoadUsers();
+    // Delay the check to ensure context is available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAdminAndLoadUsers();
+    });
   }
 
   @override
@@ -42,28 +47,33 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
   }
 
   Future<void> _checkAdminAndLoadUsers() async {
+    if (!mounted) return;
+    
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      // Check if current user is admin
       final user = _auth.currentUser;
       if (user == null) {
-        setState(() {
-          _errorMessage = 'User not authenticated';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'User not authenticated';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) {
-        setState(() {
-          _errorMessage = 'User document not found';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'User document not found';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
@@ -71,98 +81,110 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
       final role = userData['role']?.toString().toLowerCase() ?? '';
       
       if (role != 'admin') {
-        setState(() {
-          _errorMessage = 'Access denied. Admin privileges required.';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _errorMessage = 'Access denied. Admin privileges required.';
+            _isLoading = false;
+          });
+        }
         return;
       }
 
-      setState(() {
-        _isAdmin = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isAdmin = true;
+        });
+      }
 
-      // Load users if admin
       await _loadUsers();
 
     } catch (e) {
       print('Error in _checkAdminAndLoadUsers: $e');
-      setState(() {
-        _errorMessage = 'Error checking permissions: $e';
-        _isLoading = false;
-      });
-    }
-  }
-
-Future<void> _loadUsers() async {
-  if (!_isAdmin) {
-    setState(() {
-      _errorMessage = 'Admin access required';
-      _isLoading = false;
-    });
-    return;
-  }
-
-  try {
-    print('Loading users...');
-    
-    // Use get() instead of snapshots() and avoid any ordering
-    final QuerySnapshot usersSnapshot = await _firestore
-        .collection('users')
-        .get();
-    
-    print('Users loaded successfully: ${usersSnapshot.docs.length} documents');
-    
-    // Separate customers and collectors (exclude admins)
-    List<QueryDocumentSnapshot> customers = [];
-    List<QueryDocumentSnapshot> collectors = [];
-    
-    for (var doc in usersSnapshot.docs) {
-      final userData = doc.data() as Map<String, dynamic>;
-      final role = userData['role']?.toString().toLowerCase() ?? '';
-      
-      if (role == 'customer') {
-        customers.add(doc);
-      } else if (role == 'collector') {
-        collectors.add(doc);
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error checking permissions: $e';
+          _isLoading = false;
+        });
       }
-      // Skip admin users - they won't be displayed
     }
-    
-    // Sort locally by name (case-insensitive)
-    customers.sort((a, b) {
-      final nameA = ((a.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
-      final nameB = ((b.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
-      return nameA.compareTo(nameB);
-    });
-    
-    collectors.sort((a, b) {
-      final nameA = ((a.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
-      final nameB = ((b.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
-      return nameA.compareTo(nameB);
-    });
-    
-    setState(() {
-      _customers = customers;
-      _collectors = collectors;
-      _isLoading = false;
-      _errorMessage = null;
-    });
-  } catch (e) {
-    print('Error loading users: $e');
-    setState(() {
-      _errorMessage = 'Error loading users: $e';
-      _isLoading = false;
-    });
   }
-}
+
+  Future<void> _loadUsers() async {
+    if (!_isAdmin) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Admin access required';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      print('Loading users...');
+      
+      final QuerySnapshot usersSnapshot = await _firestore
+          .collection('users')
+          .get();
+      
+      print('Users loaded successfully: ${usersSnapshot.docs.length} documents');
+      
+      List<QueryDocumentSnapshot> customers = [];
+      List<QueryDocumentSnapshot> collectors = [];
+      
+      for (var doc in usersSnapshot.docs) {
+        final userData = doc.data() as Map<String, dynamic>;
+        final role = userData['role']?.toString().toLowerCase() ?? '';
+        
+        if (role == 'customer') {
+          customers.add(doc);
+        } else if (role == 'collector') {
+          collectors.add(doc);
+        }
+      }
+      
+      customers.sort((a, b) {
+        final nameA = ((a.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
+        final nameB = ((b.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+      
+      collectors.sort((a, b) {
+        final nameA = ((a.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
+        final nameB = ((b.data() as Map<String, dynamic>)['name'] ?? '').toString().toLowerCase();
+        return nameA.compareTo(nameB);
+      });
+      
+      if (mounted) {
+        setState(() {
+          _customers = customers;
+          _collectors = collectors;
+          _isLoading = false;
+          _errorMessage = null;
+        });
+      }
+    } catch (e) {
+      print('Error loading users: $e');
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error loading users: $e';
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text('User Management', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.userManagement, 
+        style: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold)),
         backgroundColor: kMainColor,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -176,11 +198,11 @@ Future<void> _loadUsers() async {
               tabs: [
                 Tab(
                   icon: Icon(Icons.people),
-                  text: 'Customers (${_customers.length})',
+                  text: l10n.customersCount(_customers.length),
                 ),
                 Tab(
                   icon: Icon(Icons.agriculture),
-                  text: 'Collectors (${_collectors.length})',
+                  text: l10n.collectorsCount(_collectors.length),
                 ),
               ],
             )
@@ -190,69 +212,75 @@ Future<void> _loadUsers() async {
             IconButton(
               icon: Icon(Icons.refresh),
               onPressed: _loadUsers,
-              tooltip: 'Refresh Users',
+              tooltip: l10n.refreshUsers,
             ),
         ],
       ),
       body: _buildBody(),
-       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
+      bottomNavigationBar: _buildBottomNav(l10n),
+    );
+  }
+
+  Widget _buildBottomNav(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 2,
+            blurRadius: 15,
+            offset: const Offset(0, -3),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 15,
-              offset: const Offset(0, -3),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(25),
+          topRight: Radius.circular(25),
+        ),
+        child: BottomNavigationBar(
+          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          selectedItemColor: kMainColor,
+          unselectedItemColor: Colors.grey,
+          showSelectedLabels: true,
+          showUnselectedLabels: true,
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          type: BottomNavigationBarType.fixed,
+          items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_rounded, size: 26),
+              label: l10n.home,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map_sharp, size: 26),
+              label: l10n.payment,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history, size: 26),
+              label: l10n.users,
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person, size: 26),
+              label: l10n.settings,
             ),
           ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(25),
-            topRight: Radius.circular(25),
-          ),
-          child: BottomNavigationBar(
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-            currentIndex: _selectedIndex,
-            onTap: _onItemTapped,
-            selectedItemColor: kMainColor,
-            unselectedItemColor: Colors.grey,
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            type: BottomNavigationBarType.fixed,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home_rounded, size: 26),
-                label: 'Home',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map_sharp, size: 26),
-                label: 'Payment',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.history, size: 26),
-                label: 'Users',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person, size: 26),
-                label: 'Setting',
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
   Widget _buildBody() {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (_isLoading) {
       return Center(
         child: Column(
@@ -263,7 +291,7 @@ Future<void> _loadUsers() async {
             ),
             SizedBox(height: 16),
             Text(
-              'Loading users...',
+              l10n.loadingUsers,
               style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
           ],
@@ -289,7 +317,7 @@ Future<void> _loadUsers() async {
               ),
               SizedBox(height: 24),
               Text(
-                'Access Error',
+                l10n.accessError,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -306,7 +334,7 @@ Future<void> _loadUsers() async {
               ElevatedButton.icon(
                 onPressed: _checkAdminAndLoadUsers,
                 icon: Icon(Icons.refresh),
-                label: Text('Try Again'),
+                label: Text(l10n.tryAgain),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red[600],
                   foregroundColor: Colors.white,
@@ -325,13 +353,15 @@ Future<void> _loadUsers() async {
     return TabBarView(
       controller: _tabController,
       children: [
-        _buildUserList(_customers, 'customer', 'No customers found'),
-        _buildUserList(_collectors, 'collector', 'No collectors found'),
+        _buildUserList(_customers, 'customer', l10n.noCustomersFound, l10n.customersWillAppear),
+        _buildUserList(_collectors, 'collector', l10n.noCollectorsFound, l10n.collectorsWillAppear),
       ],
     );
   }
 
-  Widget _buildUserList(List<QueryDocumentSnapshot> users, String userType, String emptyMessage) {
+  Widget _buildUserList(List<QueryDocumentSnapshot> users, String userType, String emptyMessage, String emptyDescription) {
+    final l10n = AppLocalizations.of(context)!;
+    
     if (users.isEmpty) {
       return Center(
         child: Column(
@@ -356,7 +386,7 @@ Future<void> _loadUsers() async {
             ),
             SizedBox(height: 8),
             Text(
-              '${userType.capitalize()}s will appear here once they register',
+              emptyDescription,
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               textAlign: TextAlign.center,
             ),
@@ -387,7 +417,6 @@ Future<void> _loadUsers() async {
                 padding: EdgeInsets.all(16),
                 child: Row(
                   children: [
-                    // User Avatar
                     Container(
                       width: 56,
                       height: 56,
@@ -410,13 +439,12 @@ Future<void> _loadUsers() async {
                     ),
                     SizedBox(width: 16),
                     
-                    // User Info
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            userData['name'] ?? 'Unknown User',
+                            userData['name'] ?? l10n.unknownUser,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -425,7 +453,7 @@ Future<void> _loadUsers() async {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            userData['email'] ?? 'No email',
+                            userData['email'] ?? l10n.noEmail,
                             style: TextStyle(
                               color: Colors.grey[600],
                               fontSize: 14,
@@ -434,7 +462,7 @@ Future<void> _loadUsers() async {
                           if (userData['regNo'] != null) ...[
                             SizedBox(height: 2),
                             Text(
-                              'Reg: ${userData['regNo']}',
+                              '${l10n.reg}: ${userData['regNo']}',
                               style: TextStyle(
                                 color: Colors.grey[500],
                                 fontSize: 12,
@@ -461,52 +489,7 @@ Future<void> _loadUsers() async {
                       ),
                     ),
                     
-                    // Action Menu
-                    PopupMenuButton(
-                      icon: Icon(Icons.more_vert, color: Colors.grey[600]),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      itemBuilder: (context) => [
-                        PopupMenuItem(
-                          value: 'view',
-                          child: Row(
-                            children: [
-                              Icon(Icons.visibility, color: Colors.blue[600], size: 20),
-                              SizedBox(width: 12),
-                              Text('View Details'),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'edit',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, color: Colors.orange[600], size: 20),
-                              SizedBox(width: 12),
-                              Text('Edit User'),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete, color: Colors.red[600], size: 20),
-                              SizedBox(width: 12),
-                              Text('Delete User'),
-                            ],
-                          ),
-                        ),
-                      ],
-                      onSelected: (value) {
-                        if (value == 'view') {
-                          _viewUserDetails(user.id, userData);
-                        } else if (value == 'edit') {
-                          _editUser(user.id, userData);
-                        } else if (value == 'delete') {
-                          _deleteUser(user.id, userData['name'] ?? 'User');
-                        }
-                      },
-                    ),
+                    _buildUserMenu(user.id, userData, l10n),
                   ],
                 ),
               ),
@@ -514,6 +497,54 @@ Future<void> _loadUsers() async {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildUserMenu(String userId, Map<String, dynamic> userData, AppLocalizations l10n) {
+    return PopupMenuButton(
+      icon: Icon(Icons.more_vert, color: Colors.grey[600]),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'view',
+          child: Row(
+            children: [
+              Icon(Icons.visibility, color: Colors.blue[600], size: 20),
+              SizedBox(width: 12),
+              Text(l10n.viewDetailsAction),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit, color: Colors.orange[600], size: 20),
+              SizedBox(width: 12),
+              Text(l10n.editUser),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete, color: Colors.red[600], size: 20),
+              SizedBox(width: 12),
+              Text(l10n.deleteUser),
+            ],
+          ),
+        ),
+      ],
+      onSelected: (value) {
+        if (value == 'view') {
+          _viewUserDetails(userId, userData);
+        } else if (value == 'edit') {
+          _editUser(userId, userData);
+        } else if (value == 'delete') {
+          _deleteUser(userId, userData['name'] ?? l10n.user);
+        }
+      },
     );
   }
 
@@ -553,16 +584,17 @@ Future<void> _loadUsers() async {
   }
 
   void _viewUserDetails(String userId, Map<String, dynamic> userData) {
+    final l10n = AppLocalizations.of(context)!;
+    
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: MediaQuery.of(context).size.width * 0.9,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Header
               Container(
                 padding: EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -585,7 +617,7 @@ Future<void> _loadUsers() async {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            userData['name'] ?? 'Unknown User',
+                            userData['name'] ?? l10n.unknownUser,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -604,36 +636,32 @@ Future<void> _loadUsers() async {
                     ),
                     IconButton(
                       icon: Icon(Icons.close, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () => Navigator.pop(dialogContext),
                     ),
                   ],
                 ),
               ),
               
-              // Content
               SingleChildScrollView(
                 padding: EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    _buildDetailCard('Personal Information', [
-                      _buildDetailRow('Full Name', userData['name'] ?? 'N/A'),
-                      _buildDetailRow('Email Address', userData['email'] ?? 'N/A'),
-                      if (userData['regNo'] != null)
-                        _buildDetailRow('Registration No.', userData['regNo'].toString()),
-                      _buildDetailRow('User Role', (userData['role'] ?? 'N/A').toUpperCase()),
+                    _buildDetailCard(l10n.personalInformationTitle, [
+                      _buildDetailRow(l10n.fullNameLabel, userData['name'] ?? 'N/A'),
+                      _buildDetailRow(l10n.emailAddressLabel, userData['email'] ?? 'N/A'),
+                      _buildDetailRow(l10n.registrationNoLabel, userData['regNo'] ?? 'N/A'),
+                      _buildDetailRow(l10n.userRole, (userData['role'] ?? 'N/A').toUpperCase()),
                     ]),
                     SizedBox(height: 16),
-                    _buildDetailCard('Account Information', [
-                      _buildDetailRow('User ID', userId),
-                      _buildDetailRow('Joined Date', _formatTimestamp(userData['createdAt'])),
+                    _buildDetailCard(l10n.accountInformation, [
+                      _buildDetailRow(l10n.joinedDate, _formatTimestamp(userData['createdAt'])),
                       if (userData['updatedAt'] != null)
-                        _buildDetailRow('Last Updated', _formatTimestamp(userData['updatedAt'])),
+                        _buildDetailRow(l10n.lastUpdated, _formatTimestamp(userData['updatedAt'])),
                     ]),
                   ],
                 ),
               ),
               
-              // Actions
               Padding(
                 padding: EdgeInsets.all(20),
                 child: Row(
@@ -641,11 +669,11 @@ Future<void> _loadUsers() async {
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () {
-                          Navigator.pop(context);
+                          Navigator.pop(dialogContext);
                           _editUser(userId, userData);
                         },
                         icon: Icon(Icons.edit),
-                        label: Text('Edit User'),
+                        label: Text(l10n.editUser),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.orange[600],
                           side: BorderSide(color: Colors.orange[600]!),
@@ -656,9 +684,9 @@ Future<void> _loadUsers() async {
                     SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(dialogContext),
                         icon: Icon(Icons.check),
-                        label: Text('Done'),
+                        label: Text(l10n.done),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: _getRoleColor(userData['role']),
                           foregroundColor: Colors.white,
@@ -736,6 +764,7 @@ Future<void> _loadUsers() async {
   }
 
   void _editUser(String userId, Map<String, dynamic> userData) {
+    final l10n = AppLocalizations.of(context)!;
     final nameController = TextEditingController(text: userData['name'] ?? '');
     final emailController = TextEditingController(text: userData['email'] ?? '');
     final regNoController = TextEditingController(text: userData['regNo']?.toString() ?? '');
@@ -743,7 +772,7 @@ Future<void> _loadUsers() async {
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      builder: (dialogContext) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
           width: MediaQuery.of(context).size.width * 0.9,
@@ -751,7 +780,6 @@ Future<void> _loadUsers() async {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Header
                 Container(
                   padding: EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -767,7 +795,7 @@ Future<void> _loadUsers() async {
                       SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Edit User',
+                          l10n.editUserTitle,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 18,
@@ -777,13 +805,12 @@ Future<void> _loadUsers() async {
                       ),
                       IconButton(
                         icon: Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: () => Navigator.pop(dialogContext),
                       ),
                     ],
                   ),
                 ),
                 
-                // Form
                 Padding(
                   padding: EdgeInsets.all(20),
                   child: Column(
@@ -791,7 +818,7 @@ Future<void> _loadUsers() async {
                       TextFormField(
                         controller: nameController,
                         decoration: InputDecoration(
-                          labelText: 'Full Name',
+                          labelText: l10n.fullNameField,
                           prefixIcon: Icon(Icons.person),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -804,7 +831,7 @@ Future<void> _loadUsers() async {
                       TextFormField(
                         controller: emailController,
                         decoration: InputDecoration(
-                          labelText: 'Email Address',
+                          labelText: l10n.emailAddressField,
                           prefixIcon: Icon(Icons.email),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -818,7 +845,7 @@ Future<void> _loadUsers() async {
                       TextFormField(
                         controller: regNoController,
                         decoration: InputDecoration(
-                          labelText: 'Registration Number',
+                          labelText: l10n.registrationNumberField,
                           prefixIcon: Icon(Icons.card_membership),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -831,7 +858,7 @@ Future<void> _loadUsers() async {
                       DropdownButtonFormField<String>(
                         value: selectedRole,
                         decoration: InputDecoration(
-                          labelText: 'User Role',
+                          labelText: l10n.userRoleField,
                           prefixIcon: Icon(Icons.admin_panel_settings),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -851,15 +878,14 @@ Future<void> _loadUsers() async {
                   ),
                 ),
                 
-                // Actions
                 Padding(
                   padding: EdgeInsets.fromLTRB(20, 0, 20, 20),
                   child: Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Cancel'),
+                          onPressed: () => Navigator.pop(dialogContext),
+                          child: Text(l10n.cancel),
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(vertical: 12),
                           ),
@@ -873,7 +899,7 @@ Future<void> _loadUsers() async {
                                 emailController.text.trim().isEmpty) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('Name and Email are required'),
+                                  content: Text(l10n.nameAndEmailRequired),
                                   backgroundColor: Colors.red[600],
                                 ),
                               );
@@ -893,21 +919,25 @@ Future<void> _loadUsers() async {
                               }
 
                               await _firestore.collection('users').doc(userId).update(updateData);
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('User updated successfully'),
-                                  backgroundColor: Colors.green[600],
-                                ),
-                              );
-                              await _loadUsers();
+                              Navigator.pop(dialogContext);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.userUpdatedSuccessfully),
+                                    backgroundColor: Colors.green[600],
+                                  ),
+                                );
+                                await _loadUsers();
+                              }
                             } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error updating user: $e'),
-                                  backgroundColor: Colors.red[600],
-                                ),
-                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('${l10n.errorUpdatingUser}: $e'),
+                                    backgroundColor: Colors.red[600],
+                                  ),
+                                );
+                              }
                             }
                           },
                           style: ElevatedButton.styleFrom(
@@ -915,7 +945,7 @@ Future<void> _loadUsers() async {
                             foregroundColor: Colors.white,
                             padding: EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: Text('Update User'),
+                          child: Text(l10n.updateUser),
                         ),
                       ),
                     ],
@@ -930,11 +960,12 @@ Future<void> _loadUsers() async {
   }
 
   void _deleteUser(String userId, String userName) {
-    // Prevent current admin from deleting themselves
+    final l10n = AppLocalizations.of(context)!;
+    
     if (userId == _auth.currentUser?.uid) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Cannot delete your own admin account'),
+          content: Text(l10n.cannotDeleteOwnAccount),
           backgroundColor: Colors.red[600],
         ),
       );
@@ -943,22 +974,20 @@ Future<void> _loadUsers() async {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: [
             Icon(Icons.warning, color: Colors.red[600]),
             SizedBox(width: 12),
-            Text('Delete User'),
+            Text(l10n.deleteUserTitle),
           ],
         ),
-        content: Text(
-          'Are you sure you want to delete "$userName"? This action cannot be undone and will permanently remove all user data.',
-        ),
+        content: Text(l10n.deleteUserConfirmation(userName)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(l10n.cancel),
             style: TextButton.styleFrom(
               foregroundColor: Colors.grey[600],
             ),
@@ -967,45 +996,47 @@ Future<void> _loadUsers() async {
             onPressed: () async {
               try {
                 await _firestore.collection('users').doc(userId).delete();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('User deleted successfully'),
-                    backgroundColor: Colors.red[600],
-                  ),
-                );
-                await _loadUsers();
+                Navigator.pop(dialogContext);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(l10n.userDeletedSuccessfully),
+                      backgroundColor: Colors.red[600],
+                    ),
+                  );
+                  await _loadUsers();
+                }
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error deleting user: $e'),
-                    backgroundColor: Colors.red[600],
-                  ),
-                );
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${l10n.errorDeletingUser}: $e'),
+                      backgroundColor: Colors.red[600],
+                    ),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red[600],
               foregroundColor: Colors.white,
             ),
-            child: Text('Delete'),
+            child: Text(l10n.deleteUser),
           ),
         ],
       ),
     );
   }
 
- void _onItemTapped(int index) {
+  void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
 
     switch (index) {
       case 0:
-        // Already on home 
         Navigator.pushNamed(context, '/admin_home');
         break;
-      
       case 1:
-        Navigator.pushNamed(context, '/admin_payments');
+        Navigator.pushNamed(context, '/admin_payment_slip');
         break;
       case 2:
         Navigator.pushNamed(context, '/admin_users');

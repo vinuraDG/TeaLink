@@ -1485,7 +1485,7 @@ Future<void> debugWeekCalculations() async {
               ),
               const SizedBox(height: 12),
               Text(
-                l10n?.weeklyHarvestReady?.replaceAll('{amount}', weeklyHarvest) ?? 
+                l10n?.weeklyHarvestReady.replaceAll('{amount}', weeklyHarvest) ?? 
                 'Your weekly harvest of $weeklyHarvest is ready for collection. Use the "Notify Collector" button to alert your assigned collector.',
                 style: TextStyle(
                   fontSize: 14,
