@@ -593,57 +593,65 @@ class _CollectorDashboardState extends State<CollectorDashboard>
     );
   }
 
-  void _showLogoutDialog() {
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context)!;
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+void _showLogoutDialog() {
+  if (!mounted) return;
+  final l10n = AppLocalizations.of(context)!;
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Center(
+          child: Text(
+            l10n.logout,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          
-          title: Center(
-            child: Text(
-              l10n.logout,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-        
-          content: Text(l10n.areYouSureLogout),
-          actions: [
-            Row(
-              children: [
-                TextButton(
+        ),
+        content: Text(
+          l10n.areYouSureLogout,
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     l10n.cancel,
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
-                ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _logout(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _logout(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: Text(l10n.logout),
                 ),
               ),
-              child: Text(l10n.logout),
-            ),
-              ],
-            ),
-            
-          ],
-        );
-      },
-    );
-  }
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
 }
 
 Future<void> _logout(BuildContext context) async {

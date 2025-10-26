@@ -899,34 +899,43 @@ Future<void> debugWeekCalculations() async {
     );
   }
 
-  void _showLogoutDialog() {
-    if (!mounted) return;
-    final l10n = AppLocalizations.of(context);
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+void _showLogoutDialog() {
+  if (!mounted) return;
+  final l10n = AppLocalizations.of(context);
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Center(
+          child: Text(
+            l10n?.logout ?? 'Logout',
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          title: Center(
-            child: Text(
-              l10n?.logout ?? 'Logout',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          content: Text(l10n?.areYouSureLogout ?? 'Are you sure you want to logout?'),
-          actions: [
-            Row(
-              children: [
-                TextButton(
+        ),
+        content: Text(
+          l10n?.areYouSureLogout ?? 'Are you sure you want to logout?',
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextButton(
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     l10n?.cancel ?? 'Cancel',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ),
-                ElevatedButton(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context);
                     _logout(context);
@@ -940,14 +949,14 @@ Future<void> debugWeekCalculations() async {
                   ),
                   child: Text(l10n?.logout ?? 'Logout'),
                 ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
     

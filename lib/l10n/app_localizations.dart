@@ -523,6 +523,34 @@ String get alertsCleared ;
 String get swipeToMarkAsRead;
 String get swipeToDelete;
 
+
+//Customer Payment Slip Page
+String get paymentSlips;
+String get loadingPaymentSlips;
+String get noPaymentSlips;
+String get paymentSlipsWillAppearHere;
+String get filterSort;
+String get download;
+String get downloading;
+String get share;
+String get apply;
+String get slips;
+String get total;
+String get verified;
+String get all;
+String get no;
+String get sortAndFilter;
+String get order;
+String get paymentId;
+String get status;
+String get fileName;
+String get fileSize;
+String get uploadedBy;
+String get refresh;
+String get notes;
+String get sortBy;
+
+
 }
 
 class _AppLocalizationsDelegate

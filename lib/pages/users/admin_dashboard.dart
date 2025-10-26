@@ -266,45 +266,43 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   PreferredSizeWidget _buildAppBar(AppLocalizations localizations) {
-    return AppBar(
-      backgroundColor: kMainColor,
-      elevation: 0,
-      title: Text(
-        localizations.dashboard,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
-          color: kWhite,
-        ),
+   return AppBar(
+  backgroundColor: kMainColor,
+  elevation: 0,
+  automaticallyImplyLeading: false, // Add this line
+  title: Text(
+    localizations.dashboard,
+    style: TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 20,
+      color: kWhite,
+    ),
+  ),
+  centerTitle: true,
+  
+  actions: [
+    IconButton(
+      icon: Icon(Icons.notifications_outlined, color: kWhite),
+      onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => AlertsPage()),
       ),
-      centerTitle: true,
-      leading: IconButton(
-        icon: Icon(Icons.menu_rounded, color: kWhite),
-        onPressed: () => Navigator.of(context).pop(),
+    ),
+    IconButton(
+      icon: Icon(Icons.logout_rounded, color: kWhite),
+      onPressed: () => _showLogoutDialog(localizations),
+    ),
+  ],
+  flexibleSpace: Container(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [kMainColor, kMainColor.withOpacity(0.8)],
       ),
-      actions: [
-        IconButton(
-          icon: Icon(Icons.notifications_outlined, color: kWhite),
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AlertsPage()),
-          ),
-        ),
-        IconButton(
-          icon: Icon(Icons.logout_rounded, color: kWhite),
-          onPressed: () => _showLogoutDialog(localizations),
-        ),
-      ],
-      flexibleSpace: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [kMainColor, kMainColor.withOpacity(0.8)],
-          ),
-        ),
-      ),
-    );
+    ),
+  ),
+);
   }
 
   Widget _buildHeader(AppLocalizations localizations) {
@@ -843,50 +841,69 @@ class _AdminDashboardState extends State<AdminDashboard>
   }
 
   void _showLogoutDialog(AppLocalizations localizations) {
-    if (!mounted) return;
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Row(
+  if (!mounted) return;
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.logout_rounded, color: Colors.red),
-              SizedBox(width: 12),
-              Text(localizations.logoutTitle, style: TextStyle(fontWeight: FontWeight.bold)),
+              
+              Text(
+                localizations.logoutTitle,
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          content: Text(
-            localizations.logoutConfirmation,
-            style: TextStyle(fontSize: 15),
-          ),
-          actionsAlignment: MainAxisAlignment.end,
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(localizations.cancel, style: TextStyle(color: Colors.grey[600])),
-            ),
-            SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _logout(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+        ),
+        content: Text(
+          localizations.logoutConfirmation,
+          style: TextStyle(fontSize: 15),
+          textAlign: TextAlign.center,
+        ),
+        actionsAlignment: MainAxisAlignment.center,
+        actionsPadding: const EdgeInsets.only(bottom: 16, left: 16, right: 16),
+        actions: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text(
+                    localizations.cancel,
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                 ),
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
-              child: Text(localizations.logoutButton),
-            ),
-          ],
-        );
-      },
-    );
-  }
+              SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _logout(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  ),
+                  child: Text(localizations.logoutButton),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    },
+  );
+}
 
   String _getTimeGreeting(AppLocalizations localizations) {
     final hour = DateTime.now().hour;

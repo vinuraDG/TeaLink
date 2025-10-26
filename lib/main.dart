@@ -125,7 +125,7 @@ class MyApp extends StatelessWidget {
               '/customerDashboard': (context) => const CustomerDashboard(),
               '/customer_profile': (context) => const ProfilePage(),
               '/customer_trends': (context) => const HarvestTrendsPage(),
-              '/customer_payments': (context) => const CustomerPaymentPage(customerId: 'hFY7AwdF2wM1WsKtxpF6K3T6MbV2'),
+              '/customer_payments': (context) => const CustomerPaymentSlipPage(),
               '/customer_home': (context) => const CustomerDashboard(),
               '/customer_collector_info': (context) => const CollectorInfoPage(
                 collectorId: 'tKFNK70gH2SYUvwFo5gEmVg5JFB3',

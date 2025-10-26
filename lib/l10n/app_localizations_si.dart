@@ -1322,6 +1322,68 @@ String get noUnreadAlerts => 'නොකියවූ ඇඟවීම් නැත
 @override
 String get alertsCleared => 'සියලුම ඇඟවීම් ඉවත් කරන ලදී';
 
+//customer payment slip 
+
+
+@override
+String get paymentSlips => 'ගෙවීම් ලිපි';
+
+@override
+String get loadingPaymentSlips => 'ගෙවීම් ලිපි පූරණය වෙමින්...';
+
+@override
+String get noPaymentSlips => 'ගෙවීම් ලිපි නැත';
+
+@override
+String get paymentSlipsWillAppearHere => 'ගෙවීම් ලිපි මෙහි පෙන්වනු ඇත';
+
+@override
+String get filterSort => 'පෙරීම සහ වර්ග කිරීම';
+
+@override
+String get download => 'බාගත කරන්න';
+
+@override
+String get downloading => 'බාගත වෙමින්';
+
+@override
+String get share => 'බෙදා ගන්න';
+
+@override
+String get apply => 'යොදන්න';
+
+@override
+String get slips => 'ලිපි';
+
+@override
+String get total => 'මුළු';
+
+@override
+String get verified => 'සත්‍යාපිත';
+
+@override
+String get all => 'සියල්ල';
+
+@override
+String get no => 'නැත';
+
+@override
+String get sortAndFilter => 'පෙරීම සහ වර්ග කිරීම';
+
+@override
+String get order => 'අනුපිළිවෙල';
+
+@override
+String get paymentId => 'ගෙවීම් හැඳුනුම්පත';
+
+@override
+String get status => 'තත්ත්වය';
+
+
+
+
+
+
 // Swipe Actions
 @override
 String get swipeToMarkAsRead => 'කියවූ ලෙස සලකුණු කිරීමට දකුණට ස්වයිප් කරන්න';

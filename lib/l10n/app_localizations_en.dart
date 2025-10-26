@@ -1146,6 +1146,80 @@ String get noUnreadAlerts => 'No unread alerts';
 @override
 String get alertsCleared => 'All alerts cleared';
 
+//Customer Payment Slip Page -
+@override
+String get paymentSlips => 'Payment Slips';
+
+@override
+String get loadingPaymentSlips => 'Loading payment slips...';
+
+@override
+String get noPaymentSlips => 'No Payment Slips';
+
+@override
+String get paymentSlipsWillAppearHere => 'Payment slips will appear here';
+
+@override
+String get filterSort => 'Filter & Sort';
+
+@override
+String get download => 'Download';
+
+@override
+String get downloading => 'Downloading';
+
+@override
+String get share => 'Share';
+
+@override
+String get apply => 'Apply';
+
+@override
+String get slips => 'Slips';
+
+@override
+String get total => 'Total';
+
+@override
+String get verified => 'Verified';
+
+@override
+String get all => 'All';
+
+@override
+String get no => 'No';
+
+@override
+String get sortAndFilter => 'Sort & Filter';
+
+@override
+String get order => 'Order';
+
+@override
+String get paymentId => 'Payment ID';
+
+@override
+String get status => 'Status';
+
+@override
+String get fileName => 'File Name';
+
+@override
+String get fileSize => 'File Size';
+
+
+@override
+String get uploadedBy => 'Uploaded By';
+
+@override
+String get refresh => 'Refresh';
+
+@override
+String get notes => 'Notes';
+
+@override
+String get sortBy => 'Sort By';
+
 // Swipe Actions
 @override
 String get swipeToMarkAsRead => 'Swipe right to mark as read';
