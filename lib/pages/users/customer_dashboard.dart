@@ -1230,7 +1230,7 @@ void _showLogoutDialog() {
                 "${l10n?.hello ?? 'Hello'}, ${displayName ?? (l10n?.loading ?? 'Loading...')}",
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
                 overflow: TextOverflow.ellipsis,
@@ -1240,7 +1240,7 @@ void _showLogoutDialog() {
                 getGreeting(),
                 style: TextStyle(
                   color: Colors.white.withOpacity(0.9),
-                  fontSize: 16,
+                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -1496,8 +1496,10 @@ void _showLogoutDialog() {
               Text(
                 l10n?.weeklyHarvestReady.replaceAll('{amount}', weeklyHarvest) ?? 
                 'Your weekly harvest of $weeklyHarvest is ready for collection. Use the "Notify Collector" button to alert your assigned collector.',
+                textAlign: TextAlign.justify,
                 style: TextStyle(
-                  fontSize: 14,
+                  
+                  fontSize: 12,
                   color: Colors.grey[700],
                   height: 1.5,
                 ),

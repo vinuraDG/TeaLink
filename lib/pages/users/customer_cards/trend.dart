@@ -562,7 +562,7 @@ class _HarvestTrendsPageState extends State<HarvestTrendsPage>
                             ),
                           ),
                           Text(
-                            'Weight (kg) over time - $selectedPeriod',
+                            'Weight (kg) over time \n$selectedPeriod',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[600],

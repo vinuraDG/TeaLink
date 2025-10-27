@@ -525,14 +525,14 @@ class _CollectorDashboardState extends State<CollectorDashboard>
                   borderRadius: BorderRadius.circular(20),
                   onTap: onTap,
                   child: Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 45,
-                          height: 45,
+                          width: 37,
+                          height: 37,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               begin: Alignment.topLeft,

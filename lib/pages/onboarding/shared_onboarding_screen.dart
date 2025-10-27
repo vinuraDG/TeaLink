@@ -31,7 +31,7 @@ class SharedOnboardingScreen extends StatelessWidget {
                   child: Image.asset(
                     imagepath,
                     width: double.infinity,
-                    height: 300,
+                    height: 230,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -54,7 +54,7 @@ class SharedOnboardingScreen extends StatelessWidget {
                   description,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 15,
                     // ignore: deprecated_member_use
                     color: kBlack.withOpacity(0.7),
                     fontWeight: FontWeight.w700,

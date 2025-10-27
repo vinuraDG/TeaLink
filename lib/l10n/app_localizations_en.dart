@@ -463,7 +463,41 @@ String get areYouSureLogout => '    Are you sure you want to logout?';
 @override
 String get map => 'Map';
 
+//collector add weight page
 
+// Add Weight Page
+@override
+String get addWeight => 'Add Weight';
+
+@override
+String get customer => 'Customer';
+
+@override
+String get enterHarvestWeight => 'Enter Harvest Weight';
+
+@override
+String get weightKg => 'Weight (kg)';
+
+@override
+String get enterWeightInKg => 'Enter weight in kilograms';
+
+@override
+String get saveWeight => 'Save Weight';
+
+@override
+String get enterAccurateWeight => 'Enter the accurate weight of harvested tea leaves in kilograms.';
+
+@override
+String get pleaseEnterWeight => 'Please enter a weight value';
+
+@override
+String get pleaseEnterValidWeight => 'Please enter a valid weight greater than 0';
+
+@override
+String get weightSavedSuccessfully => 'Weight saved successfully!';
+
+@override
+String get failedToSaveWeight => 'Failed to save weight. Please try again.';
 
 
 
@@ -702,8 +736,7 @@ String get centerTodaysPendingCollections => 'Center today\'s pending collection
 @override
 String get viewDetails => 'View Details';
 
-@override
-String get addWeight => 'Add Weight';
+
 
 @override
 String get navigate => 'Navigate';

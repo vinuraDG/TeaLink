@@ -279,7 +279,18 @@ String get logout;
 String get areYouSureLogout;
 String get map ;
 
-
+// Add Weight Page strings
+// -----------------------------
+String get customer;
+String get enterHarvestWeight;
+String get weightKg;
+String get enterWeightInKg;
+String get saveWeight;
+String get enterAccurateWeight;
+String get pleaseEnterWeight;
+String get pleaseEnterValidWeight;
+String get weightSavedSuccessfully;
+String get failedToSaveWeight;
 
 // Notification Page
 String get customerNotifications;

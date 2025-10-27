@@ -20,6 +20,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+
   @override
   void initState() {
     super.initState();
@@ -30,13 +31,13 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeOutBack,
-    ));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutBack,
+          ),
+        );
     _animationController.forward();
   }
 
@@ -78,7 +79,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
     required String subtitle,
     required String value,
     required IconData icon,
-    required Color accentColor,
+    
   }) {
     final bool isSelected = selectedLanguage == value;
 
@@ -88,15 +89,15 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        color: isSelected ? accentColor.withOpacity(0.1) : Colors.white,
+        color: isSelected ? kMainColor.withOpacity(0.1) : Colors.white,
         border: Border.all(
-          color: isSelected ? accentColor : Colors.grey.shade300,
+          color: isSelected ? kMainColor : Colors.grey.shade300,
           width: isSelected ? 2 : 1,
         ),
         boxShadow: [
           BoxShadow(
             color: isSelected
-                ? accentColor.withOpacity(0.2)
+                ? kMainColor.withOpacity(0.2)
                 : Colors.black.withOpacity(0.05),
             blurRadius: isSelected ? 8 : 4,
             offset: const Offset(0, 2),
@@ -121,7 +122,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: isSelected ? accentColor : Colors.grey.shade200,
+                    color: isSelected ? kMainColor : Colors.grey.shade200,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -140,7 +141,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? accentColor : Colors.black87,
+                          color: isSelected ? kMainColor : Colors.black87,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -229,17 +230,15 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                         height: 80,
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              theme.primaryColor,
-                              theme.primaryColor.withOpacity(0.7),
-                            ],
+                            colors: [kMainColor, kMainColor.withOpacity(0.7)],
+
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: theme.primaryColor.withOpacity(0.3),
+                              color: kMainColor.withOpacity(0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
@@ -275,7 +274,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                   subtitle: 'English language',
                   value: 'en',
                   icon: Icons.language,
-                  accentColor: kMainColor,
+                  
                 ),
 
                 _buildLanguageCard(
@@ -283,7 +282,7 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                   subtitle: 'Sinhala language',
                   value: 'si',
                   icon: Icons.translate,
-                  accentColor: kMainColor,
+                 
                 ),
 
                 const Spacer(),
@@ -293,14 +292,16 @@ class _LanguageSelectionPageState extends State<LanguageSelectionPage>
                   duration: const Duration(milliseconds: 300),
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: selectedLanguage != null ? _onContinuePressed : null,
+                    onPressed: selectedLanguage != null
+                        ? _onContinuePressed
+                        : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: selectedLanguage != null
-                          ? theme.primaryColor
+                          ? kMainColor
                           : Colors.grey.shade400,
                       foregroundColor: Colors.white,
                       elevation: selectedLanguage != null ? 8 : 2,
-                      shadowColor: theme.primaryColor.withOpacity(0.3),
+                      shadowColor: kMainColor.withOpacity(0.3),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),

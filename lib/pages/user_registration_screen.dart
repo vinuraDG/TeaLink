@@ -551,7 +551,7 @@ class _UserRegistrationScreenState extends State<UserRegistrationScreen> with Ti
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Text(loc.alreadyHaveAccount, style: TextStyle(color: kGrey, fontSize: 14)),
+                          Text(loc.alreadyHaveAccount, style: TextStyle(color: kGrey, fontSize: 11)),
                           GestureDetector(
                             onTap: () => Navigator.pushNamed(context, '/signin'),
                             child: Text(

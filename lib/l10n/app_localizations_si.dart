@@ -467,7 +467,41 @@ String get areYouSureLogout => '    ඔබට ලොග් අවුට් ව�
 String get map => 'සිතියම';
 
 
+//collector add weight page
 
+// Add Weight Page
+@override
+String get addWeight => 'බර එක් කරන්න';
+
+@override
+String get customer => 'පාරිභෝගිකයා';
+
+@override
+String get enterHarvestWeight => 'අස්වනු බර ඇතුළත් කරන්න';
+
+@override
+String get weightKg => 'බර (කිලෝග්‍රෑම්)';
+
+@override
+String get enterWeightInKg => 'බර කිලෝග්‍රෑම්';
+
+@override
+String get saveWeight => 'බර සුරකින්න';
+
+@override
+String get enterAccurateWeight => 'අස්වනු ලබාගත් තේ කොළවල නිවැරදි බර කිලෝග්‍රෑම් වලින් ඇතුළත් කරන්න.';
+
+@override
+String get pleaseEnterWeight => 'කරුණාකර බර අගයක් ඇතුළත් කරන්න';
+
+@override
+String get pleaseEnterValidWeight => 'කරුණාකර 0 ට වඩා වැඩි වලංගු බරක් ඇතුළත් කරන්න';
+
+@override
+String get weightSavedSuccessfully => 'බර සාර්ථකව සුරකින ලදී!';
+
+@override
+String get failedToSaveWeight => 'බර සුරැකීමට අසමත් විය. කරුණාකර නැවත උත්සාහ කරන්න.';
 
 
 // Notification Page
@@ -706,8 +740,7 @@ String get centerTodaysPendingCollections => 'අද පොරොත්තු �
 @override
 String get viewDetails => 'විස්තර බලන්න';
 
-@override
-String get addWeight => 'බර එක් කරන්න';
+
 
 @override
 String get navigate => 'සංචාලනය';

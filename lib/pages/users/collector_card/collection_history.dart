@@ -779,14 +779,14 @@ class _CollectionHistoryPageState extends State<CollectionHistoryPage> {
                                   children: [
                                     Icon(
                                       Icons.check_circle,
-                                      size: 14,
+                                      size: 11,
                                       color: Colors.green[600],
                                     ),
-                                    const SizedBox(width: 4),
+                                    const SizedBox(width: 3),
                                     Text(
                                       localizations.collected,
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w600,
                                         color: Colors.green[700],
                                       ),

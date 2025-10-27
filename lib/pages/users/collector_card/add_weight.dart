@@ -1,7 +1,9 @@
 import 'package:TeaLink/constants/colors.dart';
+import 'package:TeaLink/l10n/app_localizations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 class AddWeightPage extends StatefulWidget {
   final String customerName;
@@ -88,11 +90,13 @@ class _AddWeightPageState extends State<AddWeightPage> {
 
   @override
   Widget build(BuildContext context) {
+    final localizations = AppLocalizations.of(context)!;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          "Add Weight",
-          style: TextStyle(
+        title: Text(
+          localizations.addWeight,
+          style: const TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
             color: kWhite,
@@ -123,7 +127,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Customer: ${widget.customerName}',
+                    '${localizations.customer}: ${widget.customerName}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -132,7 +136,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Reg No: ${widget.regNo}',
+                    '${localizations.regNo}: ${widget.regNo}',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -146,9 +150,9 @@ class _AddWeightPageState extends State<AddWeightPage> {
             const SizedBox(height: 30),
             
             // Weight Input Section
-            const Text(
-              'Enter Harvest Weight',
-              style: TextStyle(
+            Text(
+              localizations.enterHarvestWeight,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.black87,
@@ -161,8 +165,8 @@ class _AddWeightPageState extends State<AddWeightPage> {
               controller: _weightController,
               keyboardType: TextInputType.number,
               decoration: InputDecoration(
-                labelText: 'Weight (kg)',
-                hintText: 'Enter weight in kilograms',
+                labelText: localizations.weightKg,
+                hintText: localizations.enterWeightInKg,
                 prefixIcon: const Icon(Icons.scale),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -199,9 +203,9 @@ class _AddWeightPageState extends State<AddWeightPage> {
                           valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
-                    : const Text(
-                        'Save Weight',
-                        style: TextStyle(
+                    : Text(
+                        localizations.saveWeight,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -209,32 +213,9 @@ class _AddWeightPageState extends State<AddWeightPage> {
               ),
             ),
             
-            const Spacer(),
+          
             
-            // Instructions
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue[600]),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Enter the accurate weight of harvested tea leaves in kilograms.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.blue[700],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    
           ],
         ),
       ),
@@ -242,8 +223,10 @@ class _AddWeightPageState extends State<AddWeightPage> {
   }
 
   Future<void> _saveWeight() async {
+    final localizations = AppLocalizations.of(context)!;
+    
     if (_weightController.text.isEmpty) {
-      _showErrorSnackBar('Please enter a weight value');
+      _showErrorSnackBar(localizations.pleaseEnterWeight);
       return;
     }
 
@@ -251,7 +234,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
     final weight = double.tryParse(weightText);
 
     if (weight == null || weight <= 0) {
-      _showErrorSnackBar('Please enter a valid weight greater than 0');
+      _showErrorSnackBar(localizations.pleaseEnterValidWeight);
       return;
     }
 
@@ -355,7 +338,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
       setState(() => _isLoading = false);
 
       if (mounted) {
-        _showSuccessSnackBar('Weight saved successfully!');
+        _showSuccessSnackBar(localizations.weightSavedSuccessfully);
         // Return success with weight data
         Navigator.pop(context, {
           'success': true,
@@ -365,7 +348,7 @@ class _AddWeightPageState extends State<AddWeightPage> {
     } catch (e) {
       setState(() => _isLoading = false);
       print('Error saving weight: $e');
-      _showErrorSnackBar('Failed to save weight. Please try again.');
+      _showErrorSnackBar(localizations.failedToSaveWeight);
     }
   }
 

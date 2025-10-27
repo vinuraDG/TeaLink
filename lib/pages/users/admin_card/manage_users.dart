@@ -183,7 +183,7 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
       appBar: AppBar(
         title: Text(l10n.userManagement, 
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 17,
           fontWeight: FontWeight.bold)),
         backgroundColor: kMainColor,
         foregroundColor: Colors.white,
@@ -856,7 +856,7 @@ class _ManageUsersPageState extends State<ManageUsersPage> with SingleTickerProv
                       ),
                       SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        value: selectedRole,
+                        initialValue: selectedRole,
                         decoration: InputDecoration(
                           labelText: l10n.userRoleField,
                           prefixIcon: Icon(Icons.admin_panel_settings),

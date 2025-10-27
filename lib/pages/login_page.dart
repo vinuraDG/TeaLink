@@ -11,7 +11,6 @@ import 'package:TeaLink/pages/users/collector_dashboard.dart';
 import 'package:TeaLink/pages/users/customer_dashboard.dart';
 import 'package:TeaLink/widgets/session_manager.dart';
 
-
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -41,10 +40,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic));
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
 
     _animationController.forward();
   }
@@ -57,26 +59,132 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  Future<void> _resetPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      _showSnackBar(
-        "Please enter your email to reset password",
-        Colors.orange[600]!,
-        Icons.warning,
-      );
-      return;
-    }
+  Future<void> _showForgotPasswordDialog() async {
+    final TextEditingController resetEmailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
 
+    return showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.lock_reset, color: kMainColor),
+              const SizedBox(width: 8),
+              const Text('Reset Password'),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter your email address and we\'ll send you a link to reset your password.',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 20),
+                TextFormField(
+                  controller: resetEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                  decoration: InputDecoration(
+                    labelText: 'Email',
+                    hintText: 'Enter your email',
+                    prefixIcon: Icon(
+                      Icons.email_outlined,
+                      color: Colors.green[600],
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: Colors.grey[300]!),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide(color: kMainColor, width: 2),
+                    ),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                resetEmailController.dispose();
+              },
+              child: Text('Cancel', style: TextStyle(color: Colors.grey[600])),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(context).pop();
+                  await _resetPassword(resetEmailController.text.trim());
+                  resetEmailController.dispose();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: kMainColor,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'Send Reset Link',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: _emailController.text.trim());
+      await _auth.sendPasswordResetEmail(email: email);
       _showSnackBar(
-        "Password reset email sent successfully!",
+        "Password reset link sent! Please check your email.",
         Colors.green[600]!,
         Icons.check_circle,
       );
+    } on FirebaseAuthException catch (e) {
+      String errorMessage;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = "No account found with this email address.";
+          break;
+        case 'invalid-email':
+          errorMessage = "Invalid email address format.";
+          break;
+        default:
+          errorMessage = "Failed to send reset email. Please try again.";
+      }
+      _showSnackBar(errorMessage, Colors.red[600]!, Icons.error);
     } catch (e) {
       _showSnackBar(
-        "Failed to send reset email. Please check your email.",
+        "An error occurred. Please try again.",
         Colors.red[600]!,
         Icons.error,
       );
@@ -168,8 +276,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
         idToken: googleAuth.idToken,
       );
 
-      UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
+      UserCredential userCredential = await _auth.signInWithCredential(
+        credential,
+      );
 
       final docRef = FirebaseFirestore.instance
           .collection('users')
@@ -288,7 +397,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             ),
                           ),
                           const SizedBox(height: 20),
-                          
+
                           Text(
                             loc.welcomeToTeaLink,
                             textAlign: TextAlign.center,
@@ -301,10 +410,7 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           const SizedBox(height: 8),
                           Text(
                             loc.signInToAccount,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: kGrey,
-                            ),
+                            style: TextStyle(fontSize: 16, color: kGrey),
                           ),
                         ],
                       ),
@@ -337,7 +443,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               if (value == null || value.isEmpty) {
                                 return loc.enterEmail;
                               }
-                              if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                              if (!RegExp(
+                                r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                              ).hasMatch(value)) {
                                 return 'Please enter a valid email';
                               }
                               return null;
@@ -345,18 +453,28 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             decoration: InputDecoration(
                               labelText: loc.email,
                               hintText: loc.enterEmail,
-                              prefixIcon: Icon(Icons.email_outlined, color: Colors.green[600]),
+                              prefixIcon: Icon(
+                                Icons.email_outlined,
+                                color: Colors.green[600],
+                              ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Colors.green[600]!, width: 2),
+                                borderSide: BorderSide(
+                                  color: Colors.green[600]!,
+                                  width: 2,
+                                ),
                               ),
                               filled: true,
                               fillColor: Colors.grey[50],
@@ -381,10 +499,15 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             decoration: InputDecoration(
                               labelText: loc.passwordField,
                               hintText: loc.enterPassword,
-                              prefixIcon: Icon(Icons.lock_outlined, color: Colors.green[600]),
+                              prefixIcon: Icon(
+                                Icons.lock_outlined,
+                                color: Colors.green[600],
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                  _isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                   color: Colors.grey[600],
                                 ),
                                 onPressed: () {
@@ -395,15 +518,22 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: Colors.grey[300]!),
+                                borderSide: BorderSide(
+                                  color: Colors.grey[300]!,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide(color: kMainColor, width: 2),
+                                borderSide: BorderSide(
+                                  color: kMainColor,
+                                  width: 2,
+                                ),
                               ),
                               filled: true,
                               fillColor: Colors.grey[50],
@@ -411,10 +541,11 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                           ),
 
                           // Forgot Password
+                          // Forgot Password - Replace the existing TextButton
                           Align(
                             alignment: Alignment.centerRight,
                             child: TextButton(
-                              onPressed: _resetPassword,
+                              onPressed: _showForgotPasswordDialog,
                               child: Text(
                                 loc.forgotPassword,
                                 style: TextStyle(
@@ -495,7 +626,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : Image.asset(
                                 'assets/images/Google_Logo.jpg',
@@ -534,16 +667,16 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
                         children: [
                           Text(
                             loc.dontHaveAccount,
-                            style: TextStyle(
-                              color: kGrey,
-                              fontSize: 16,
-                            ),
+                            style: TextStyle(color: kGrey, fontSize: 16),
                           ),
                           GestureDetector(
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => UserRegistrationScreen()),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      UserRegistrationScreen(),
+                                ),
                               );
                             },
                             child: Text(

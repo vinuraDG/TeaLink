@@ -19,7 +19,7 @@ class CollectorInfoPage extends StatelessWidget {
         title: Text(
           loc.collectorProfile,
           style: const TextStyle(
-            fontSize: 22,
+            fontSize: 20,
             fontWeight: FontWeight.w900,
             color: kWhite,
           ),

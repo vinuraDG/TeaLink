@@ -578,7 +578,7 @@ class _AdminPaymentSlipPageState extends State<AdminPaymentSlipPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(localizations.uploadPaymentSlipTitle, 
-            style: const TextStyle(fontSize: 20,
+            style: const TextStyle(fontSize: 17,
             fontWeight: FontWeight.w600)),
         centerTitle: true,
         backgroundColor: kMainColor,

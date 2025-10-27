@@ -1,6 +1,5 @@
 import 'package:TeaLink/constants/colors.dart';
 import 'package:TeaLink/l10n/app_localizations.dart';
-import 'package:TeaLink/pages/users/customer_cards/collector_info.dart';
 import 'package:TeaLink/pages/users/customer_cards/customer_profile.dart';
 import 'package:TeaLink/pages/users/customer_cards/trend.dart';
 import 'package:TeaLink/pages/users/customer_dashboard.dart';
@@ -681,7 +680,7 @@ Widget _buildDetailRow(String label, String value, IconData icon) {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 localizations.paymentSlips,
-                style: const TextStyle(fontWeight: FontWeight.bold,color: kWhite),
+                style: const TextStyle(fontWeight: FontWeight.bold,color: kWhite,fontSize: 20),
               ),
               background: Container(
                 decoration: BoxDecoration(
